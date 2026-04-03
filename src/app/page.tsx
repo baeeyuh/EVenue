@@ -1,10 +1,15 @@
-export default function Home() {
+import NavBar from "@/components/common/NavBar"
+import HeroSection from "@/components/common/HeroSection"
+import FilterSection from "@/components/common/FilterSection"
+import FeaturedVenues from "@/components/common/FeaturedVenues"
+
+export default function HomePage() {
   return (
-    <main className="p-10">
-      <h1 className="text-4xl font-bold">Welcome to EVenue</h1>
-      <p className="mt-4 text-lg">
-        Find and book event venues easily and faster.
-      </p>
+    <main className="min-h-screen bg-background text-foreground">
+      <NavBar />
+      <HeroSection />
+      <FilterSection />
+      <FeaturedVenues />
     </main>
-  );
+  )
 }
