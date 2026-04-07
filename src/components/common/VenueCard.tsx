@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 
 type VenueCardProps = {
+  id: string
   name: string
   location: string
   capacity: number
@@ -15,6 +16,7 @@ type VenueCardProps = {
 }
 
 export default function VenueCard({
+  id,
   name,
   location,
   capacity,
@@ -23,14 +25,20 @@ export default function VenueCard({
   amenities,
 }: VenueCardProps) {
   return (
-    <Card className="overflow-hidden rounded-3xl border shadow-sm">
-      <div className="relative h-60 w-full">
-        <Image src={image} alt={name} fill className="object-cover" />
+    <Card className="overflow-hidden rounded-[2rem] border-border/60 bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+      <div className="relative h-64 w-full">
+        <Image
+          src={image}
+          alt={name}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+          className="object-cover"
+        />
       </div>
 
       <CardContent className="space-y-4 p-5">
-        <div>
-          <h3 className="text-xl font-semibold">{name}</h3>
+        <div className="space-y-1">
+          <h3 className="text-xl font-semibold tracking-tight">{name}</h3>
           <p className="text-sm text-muted-foreground">{location}</p>
         </div>
 
@@ -50,7 +58,7 @@ export default function VenueCard({
 
       <CardFooter className="p-5 pt-0">
         <Button asChild className="w-full rounded-full">
-          <Link href="/venues">View Details</Link>
+          <Link href={`/venues/${id}`}>View Details</Link>
         </Button>
       </CardFooter>
     </Card>

@@ -1,3 +1,7 @@
+"use client"
+
+import { useState } from "react"
+
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import {
@@ -16,53 +20,54 @@ const amenities = [
   "WiFi",
   "Rooftop",
   "Garden",
-  "Heritage",
   "Pool",
 ]
 
 export default function FilterSection() {
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
+
+  const toggleAmenity = (amenity: string) => {
+    setSelectedAmenities((prev) =>
+      prev.includes(amenity)
+        ? prev.filter((item) => item !== amenity)
+        : [...prev, amenity]
+    )
+  }
+
   return (
-    <section className="mx-auto max-w-7xl px-6 pb-10">
-      <div className="rounded-3xl border bg-card p-6 shadow-sm">
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+    <section className="mx-auto max-w-7xl px-6 pb-12">
+      <div className="rounded-[2rem] border border-border/60 bg-card p-6 shadow-sm">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Search
-            </label>
+            <label className="text-sm font-medium text-muted-foreground">Search</label>
             <Input
               placeholder="Venue name or location"
-              className="h-12 rounded-2xl"
+              className="h-12 rounded-2xl border-border/70 bg-background"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Min Capacity
-            </label>
+            <label className="text-sm font-medium text-muted-foreground">Min Capacity</label>
             <Input
               type="number"
               placeholder="e.g. 100"
-              className="h-12 rounded-2xl"
+              className="h-12 rounded-2xl border-border/70 bg-background"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Max Budget
-            </label>
+            <label className="text-sm font-medium text-muted-foreground">Max Budget</label>
             <Input
               type="number"
               placeholder="e.g. 50000"
-              className="h-12 rounded-2xl"
+              className="h-12 rounded-2xl border-border/70 bg-background"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Location
-            </label>
+            <label className="text-sm font-medium text-muted-foreground">Location</label>
             <Select>
-              <SelectTrigger className="h-12 rounded-2xl">
+              <SelectTrigger className="h-12 rounded-2xl border-border/70 bg-background">
                 <SelectValue placeholder="All Locations" />
               </SelectTrigger>
               <SelectContent>
@@ -75,16 +80,29 @@ export default function FilterSection() {
           </div>
         </div>
 
-        <div className="mt-6 flex flex-wrap gap-3">
-          {amenities.map((item, index) => (
-            <Badge
-              key={item}
-              variant={index === 0 ? "default" : "secondary"}
-              className="rounded-full px-4 py-2 text-sm"
-            >
-              {item}
-            </Badge>
-          ))}
+        <div className="mt-6">
+          <p className="mb-3 text-sm font-medium text-muted-foreground">Amenities</p>
+
+          <div className="flex flex-wrap gap-3">
+            {amenities.map((amenity) => {
+              const isSelected = selectedAmenities.includes(amenity)
+
+              return (
+                <button
+                  key={amenity}
+                  type="button"
+                  onClick={() => toggleAmenity(amenity)}
+                >
+                  <Badge
+                    variant={isSelected ? "default" : "secondary"}
+                    className="rounded-full px-4 py-2 text-sm transition"
+                  >
+                    {amenity}
+                  </Badge>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
     </section>
