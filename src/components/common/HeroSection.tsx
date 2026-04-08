@@ -16,7 +16,7 @@ export default function HeroSection() {
           </p>
 
           <div className="space-y-4">
-            <h1 className="max-w-2xl text-5xl font-semibold leading-tight tracking-tight md:text-6xl xl:text-7xl">
+            <h1 className="max-w-2xl text-4xl font-serif font-lightl leading-tight tracking-tight md:text-5xl xl:text-6xl">
               Find stylish venues without the usual stress
             </h1>
 

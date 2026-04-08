@@ -8,7 +8,7 @@ export default function FeaturedOrganizations() {
         <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
           Featured organizations
         </p>
-        <h2 className="text-3xl font-semibold tracking-tight">
+        <h2 className="text-3xl font-serif font-light tracking-tight">
           Trusted venue providers you can explore
         </h2>
       </div>

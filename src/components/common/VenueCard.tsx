@@ -38,7 +38,7 @@ export default function VenueCard({
 
       <CardContent className="space-y-4 p-5">
         <div className="space-y-1">
-          <h3 className="text-xl font-semibold tracking-tight">{name}</h3>
+          <h3 className="text-xl font-serif font-light tracking-tight">{name}</h3>
           <p className="text-sm text-muted-foreground">{location}</p>
         </div>
 
