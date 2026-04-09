@@ -7,7 +7,6 @@ import NavBar from "@/components/common/NavBar"
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <NavBar />
       <HeroSection />
       <FilterSection />
       <FeaturedVenues />

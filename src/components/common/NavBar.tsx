@@ -27,10 +27,10 @@ export default function NavBar() {
             <Link href="/organizations">Organizations</Link>
           </Button>
           <Button asChild variant="outline" className="rounded-full px-5">
-            <Link href="/login">Log In</Link>
+            <Link href="/authentication/login">Log In</Link>
           </Button>
           <Button asChild className="rounded-full px-5">
-            <Link href="/signup">Sign Up</Link>
+            <Link href="/authentication/signup">Sign Up</Link>
           </Button>
         </nav>
       </div>
