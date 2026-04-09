@@ -7,6 +7,13 @@ export type Venue = {
   price: string
   image: string
   amenities: string[]
+  rating?: number
+  reviewCount?: number
+  ownerName?: string
+  ownerInitials?: string
+  description?: string
+  venueType?: string
+  isAvailable?: boolean
 }
 
 export type Organization = {

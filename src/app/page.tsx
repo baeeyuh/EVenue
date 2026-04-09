@@ -2,7 +2,6 @@ import FeaturedOrganizations from "@/components/common/FeaturedOrganizations"
 import FeaturedVenues from "@/components/common/FeaturedVenues"
 import FilterSection from "@/components/common/FilterSection"
 import HeroSection from "@/components/common/HeroSection"
-import NavBar from "@/components/common/NavBar"
 
 export default function HomePage() {
   return (

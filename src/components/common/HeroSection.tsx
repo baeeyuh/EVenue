@@ -17,7 +17,7 @@ export default function HeroSection() {
 
           <div className="space-y-4">
             <h1 className="max-w-2xl text-4xl font-serif font-lightl leading-tight tracking-tight md:text-5xl xl:text-6xl">
-              Find stylish venues without the usual stress
+              Every great event starts with the right space.
             </h1>
 
             <p className="max-w-xl text-base leading-7 text-muted-foreground md:text-lg">
