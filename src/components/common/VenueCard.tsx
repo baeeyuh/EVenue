@@ -26,6 +26,10 @@ export type VenueCardProps = {
 
 export default function VenueCard(props: VenueCardProps) {
   const [open, setOpen] = useState(false)
+  const safeImage =
+    props.image && props.image.startsWith("http")
+      ? props.image
+      : "/images/placeholder-venue.jpg"
 
   return (
     <>
@@ -35,7 +39,7 @@ export default function VenueCard(props: VenueCardProps) {
       >
         <div className="relative w-full aspect-3/2">
           <Image
-            src={props.image}
+            src={safeImage}
             alt={props.name}
             fill
             sizes="(max-width: 768px) 100vw, 33vw"
@@ -69,12 +73,12 @@ export default function VenueCard(props: VenueCardProps) {
           <StarRating rating={props.rating} reviewCount={props.reviewCount} size="sm" />
 
           <div className="flex flex-wrap gap-1">
-            {props.amenities.slice(0, 4).map((a) => (
+            {props.amenities?.slice(0, 4).map((a) => (
               <Badge key={a} variant="secondary" className="rounded-full text-[10px] px-2 py-0.5 font-normal">
                 {a}
               </Badge>
             ))}
-            {props.amenities.length > 4 && (
+            {props.amenities?.length > 4 && (
               <Badge variant="secondary" className="rounded-full text-[10px] px-2 py-0.5 font-normal">
                 +{props.amenities.length - 4}
               </Badge>

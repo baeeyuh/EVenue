@@ -71,7 +71,7 @@ export default function VenueDetailsModal({
 
           {/* Amenities */}
           <div className="flex flex-wrap gap-1.5">
-            {amenities.map((a) => (
+            {amenities?.map((a) => (
               <Badge key={a} variant="secondary" className="rounded-full text-xs font-normal">
                 {a}
               </Badge>
