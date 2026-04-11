@@ -1,7 +1,14 @@
 import OrganizationCard from "@/components/common/OrganizationCard"
-import { organizations } from "@/lib/mock-data"
+import { fetchOrganizations } from "@/lib/servises/organizations"
 
-export default function FeaturedOrganizations() {
+export default async function FeaturedOrganizations() {
+  let organizations: any[] = []
+  try {
+    organizations = await fetchOrganizations()
+  } catch (err) {
+    organizations = []
+  }
+
   return (
     <section className="mx-auto max-w-7xl px-6 pb-16">
       <div className="mb-6 space-y-1">
@@ -14,7 +21,7 @@ export default function FeaturedOrganizations() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {organizations.map((organization) => (
+        {organizations.map((organization: any) => (
           <OrganizationCard key={organization.id} {...organization} />
         ))}
       </div>

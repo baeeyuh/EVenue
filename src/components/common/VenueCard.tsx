@@ -26,6 +26,8 @@ export type VenueCardProps = {
 
 export default function VenueCard(props: VenueCardProps) {
   const [open, setOpen] = useState(false)
+  const imageSrc = String(props.image ?? "").trim()
+  const safeImage = imageSrc ? (imageSrc.startsWith("http") ? imageSrc : "/images/placeholder-venue.jpg") : null
 
   return (
     <>
@@ -33,14 +35,18 @@ export default function VenueCard(props: VenueCardProps) {
         onClick={() => setOpen(true)}
         className="overflow-hidden rounded-2xl border-border/60 bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg cursor-pointer group p-0"
       >
-        <div className="relative w-full aspect-3/2">
-          <Image
-            src={props.image}
-            alt={props.name}
-            fill
-            sizes="(max-width: 768px) 100vw, 33vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-          />
+        <div className="relative w-full" style={{ aspectRatio: "3/2", minHeight: 160 }}>
+          {safeImage ? (
+            <Image
+              src={safeImage}
+              alt={props.name}
+              fill
+              sizes="(max-width: 768px) 100vw, 33vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <div className="w-full h-full bg-muted-foreground/8" />
+          )}
           <div className="absolute top-3 left-3 bg-primary/90 text-primary-foreground text-[10px] px-2.5 py-1 rounded-full tracking-wide font-medium">
             {props.isAvailable ? "Available" : "Unavailable"}
           </div>
@@ -69,12 +75,12 @@ export default function VenueCard(props: VenueCardProps) {
           <StarRating rating={props.rating} reviewCount={props.reviewCount} size="sm" />
 
           <div className="flex flex-wrap gap-1">
-            {props.amenities.slice(0, 4).map((a) => (
+            {props.amenities?.slice(0, 4).map((a) => (
               <Badge key={a} variant="secondary" className="rounded-full text-[10px] px-2 py-0.5 font-normal">
                 {a}
               </Badge>
             ))}
-            {props.amenities.length > 4 && (
+            {props.amenities?.length > 4 && (
               <Badge variant="secondary" className="rounded-full text-[10px] px-2 py-0.5 font-normal">
                 +{props.amenities.length - 4}
               </Badge>
