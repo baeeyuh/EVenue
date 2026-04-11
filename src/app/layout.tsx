@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Figtree, Source_Sans_3, Playfair_Display } from "next/font/google";
+import { Geist, Geist_Mono, Source_Sans_3, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import NavBar from "@/components/common/NavBar";

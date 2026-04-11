@@ -13,6 +13,16 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // No redirects: use `/organizations/:id` as public canonical route
+  async redirects() {
+    return [
+      {
+        source: "/dashboard/organizations/:id",
+        destination: "/organizations/:id",
+        permanent: true,
+      },
+    ]
+  },
 }
 
 export default nextConfig
