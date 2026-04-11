@@ -1,14 +1,85 @@
 "use client"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import AuthTabBar from "./AuthTabBar"
 import RolePicker, { type Role } from "./RolePicker"
 import Link from "next/link"
+import { useAuthFields } from "@/types/types"
+import { signUp } from "@/lib/supabase/auth"
+import { isValidEmail } from "@/lib/utils"
 
 export default function SignUpForm() {
   const [role, setRole] = useState<Role | null>(null)
+  const { firstName, setFirstName, lastName, setLastName, email, setEmail, password, setPassword } =
+    useAuthFields()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const inFlightRef = useRef(false)
+  const lastSubmitRef = useRef(0)
+
+  async function handleCreateAccount() {
+    const now = Date.now()
+    if (now - lastSubmitRef.current < 1000) {
+      setError("Please wait a moment before trying again")
+      return
+    }
+
+    if (inFlightRef.current) return
+    inFlightRef.current = true
+    lastSubmitRef.current = now
+    setLoading(true)
+    setError(null)
+
+    if (!role) {
+      setLoading(false)
+      inFlightRef.current = false
+      setError("Please select a role")
+      return
+    }
+    if (!firstName || !firstName.trim()) {
+      setLoading(false)
+      inFlightRef.current = false
+      setError("First name is required")
+      return
+    }
+    if (!lastName || !lastName.trim()) {
+      setLoading(false)
+      inFlightRef.current = false
+      setError("Last name is required")
+      return
+    }
+    if (!email) {
+      setLoading(false)
+      inFlightRef.current = false
+      setError("Email is required")
+      return
+    }
+    if (!isValidEmail(email)) {
+      setLoading(false)
+      inFlightRef.current = false
+      setError("Please enter a valid email address")
+      return
+    }
+    if (!password || password.length < 8) {
+      setLoading(false)
+      inFlightRef.current = false
+      setError("Password must be at least 8 characters")
+      return
+    }
+
+    try {
+      const { data, error } = await signUp({ email, password, firstName, lastName })
+      if (error) setError(error.message ?? "Sign-up failed")
+      else console.log("Sign up created:", data)
+    } catch (err: any) {
+      setError(err?.message ?? "An unexpected error occurred")
+    } finally {
+      setLoading(false)
+      inFlightRef.current = false
+    }
+  }
 
   return (
     <div className="flex flex-col justify-center space-y-4 h-full">
@@ -24,11 +95,21 @@ export default function SignUpForm() {
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">First name</Label>
-          <Input placeholder="Juan" className="bg-muted/50 border-border/60 h-9 text-sm" />
+          <Input
+            placeholder="Juan"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className="bg-muted/50 border-border/60 h-9 text-sm"
+          />
         </div>
         <div className="space-y-1.5">
           <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">Last name</Label>
-          <Input placeholder="dela Cruz" className="bg-muted/50 border-border/60 h-9 text-sm" />
+          <Input
+            placeholder="dela Cruz"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className="bg-muted/50 border-border/60 h-9 text-sm"
+          />
         </div>
       </div>
 
@@ -77,19 +158,36 @@ export default function SignUpForm() {
 
       <div className="space-y-1.5">
         <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">Email</Label>
-        <Input type="email" placeholder="you@email.com" className="bg-muted/50 border-border/60 h-9 text-sm" />
+        <Input
+          type="email"
+          placeholder="you@email.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="bg-muted/50 border-border/60 h-9 text-sm"
+        />
       </div>
 
       <div className="space-y-1.5">
         <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">Password</Label>
-        <Input type="password" placeholder="Min. 8 characters" className="bg-muted/50 border-border/60 h-9 text-sm" />
+        <Input
+          type="password"
+          placeholder="Min. 8 characters"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="bg-muted/50 border-border/60 h-9 text-sm"
+        />
       </div>
 
+      {error && <p className="text-xs text-destructive">{error}</p>}
+
       <Button
-        disabled={!role}
+        onClick={handleCreateAccount}
+        disabled={
+          loading || !role || !firstName || !lastName || !email || !isValidEmail(email) || !password || password.length < 8
+        }
         className="w-full rounded-full bg-primary hover:bg-[#1a3148] text-white disabled:opacity-40"
       >
-        Create Account
+        {loading ? "Creating..." : "Create Account"}
       </Button>
 
       <p className="text-center text-xs text-muted-foreground">
