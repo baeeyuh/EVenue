@@ -13,8 +13,8 @@ export default function NavBar() {
               src="/images/logo1.png"
               alt="EVenue logo"
               width={160}
-              height={100}
-              className="object-contain"
+              height={160}
+              className="object-contain w-auto h-12"
             />
           </div>
         </Link>

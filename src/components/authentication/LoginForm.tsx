@@ -36,7 +36,7 @@ export default function LoginForm() {
       </Button>
 
       <p className="text-center text-xs text-muted-foreground">
-        Don't have an account?{" "}
+        Don&apos;t have an account?{" "}
         <Link href="/authentication/signup" className="text-foreground font-medium underline underline-offset-2">
           Sign up
         </Link>
