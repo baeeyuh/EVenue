@@ -1,5 +1,5 @@
 import VenueCard from "@/components/common/VenueCard"
-import type { Venue } from "@/lib/types"
+import type { Venue } from "@/types/types"
 
 export default function OrganizationVenues({ venues }: { venues: Venue[] }) {
   if (!venues.length) return null
