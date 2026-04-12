@@ -1,11 +1,21 @@
 import { Building2, Star, Users, CalendarDays } from "lucide-react"
 import type { Organization } from "@/lib/types"
 
-export default function OrganizationStats({ org }: { org: Organization & { rating?: number; reviewCount?: number; established?: string } }) {
+export default function OrganizationStats({
+  org,
+}: {
+  org: Organization & {
+    rating?: number
+    review_count?: number
+    reviewCount?: number
+    established?: string
+    venueCount?: number
+  }
+}) {
   const stats = [
-    { icon: Building2, label: "Venues Listed", value: org.venue_count },
+    { icon: Building2, label: "Venues Listed", value: org.venue_count ?? org.venueCount ?? 0 },
     { icon: Star, label: "Avg Rating", value: org.rating ? org.rating.toFixed(1) : "-" },
-    { icon: Users, label: "Total Reviews", value: org.reviewCount ?? "-" },
+    { icon: Users, label: "Total Reviews", value: org.review_count ?? org.reviewCount ?? "-" },
     { icon: CalendarDays, label: "Est.", value: org.established ?? "-" },
   ]
 

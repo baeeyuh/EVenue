@@ -2,17 +2,36 @@ import Image from "next/image"
 import { MapPin, Globe } from "lucide-react"
 import { StarRating } from "@/components/common/StarRating"
 import { Button } from "@/components/ui/button"
-import type { Organization } from "@/lib/types"
 
-export default function OrganizationHero({ org }: { org: any }) {
+type OrganizationLike = {
+  name: string
+  logo?: string
+  location?: string
+  website?: string
+  cover_image?: string
+  coverImage?: string
+  venue_count?: number
+  rating?: number
+  review_count?: number
+  reviewCount?: number
+}
+
+export default function OrganizationHero({ org }: { org: OrganizationLike }) {
+  const coverImage = org.cover_image ?? org.coverImage
+  const websiteHref = org.website
+    ? org.website.startsWith("http")
+      ? org.website
+      : `https://${org.website}`
+    : undefined
+
   return (
     <div className="relative">
 
       {/* Cover image */}
       <div className="relative h-64 w-full overflow-hidden md:h-80">
-        {org.coverImage || org.cover_image ? (
+        {coverImage ? (
           <Image
-            src={org.coverImage ?? org.cover_image}
+            src={coverImage}
             alt={org.name}
             fill
             className="object-cover"
@@ -46,13 +65,13 @@ export default function OrganizationHero({ org }: { org: any }) {
 
           {/* CTAs aligned to bottom of logo */}
           <div className="flex gap-2 pb-1">
-            {org.website && (
+            {websiteHref && (
               <Button
                 variant="outline"
                 className="rounded-full text-sm gap-2"
                 asChild
               >
-                <a href={`https://${org.website}`} target="_blank" rel="noopener noreferrer">
+                <a href={websiteHref} target="_blank" rel="noopener noreferrer">
                   <Globe className="w-3.5 h-3.5" />
                   Visit Website
                 </a>
@@ -73,7 +92,7 @@ export default function OrganizationHero({ org }: { org: any }) {
             <MapPin className="w-3.5 h-3.5 shrink-0" />
             {org.location}
           </div>
-          <StarRating rating={org.rating ?? 0} reviewCount={org.reviewCount ?? 0} size="sm" />
+          <StarRating rating={org.rating ?? 0} reviewCount={org.review_count ?? org.reviewCount ?? 0} size="sm" />
         </div>
 
       </div>
