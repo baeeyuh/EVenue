@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,13 +9,25 @@ import Link from "next/link"
 import { useAuthFields } from "@/types/types"
 import { signIn } from "@/lib/supabase/auth"
 import { isValidEmail } from "@/lib/utils"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { toast } from "sonner"
 
 export default function LoginForm() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { email, setEmail, password, setPassword } = useAuthFields()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inFlightRef = useRef(false)
   const lastSubmitRef = useRef(0)
+
+  useEffect(() => {
+    if (searchParams.get("signup") !== "success") return
+
+    toast.success("Account created successfully. Please log in.")
+    router.replace(pathname)
+  }, [searchParams, router, pathname])
 
   async function handleLogin() {
     const now = Date.now()
