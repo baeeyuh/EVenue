@@ -9,6 +9,7 @@ import { StarRating } from "./StarRating"
 
 export type VenueCardProps = {
   id: string
+  organizationId: string
   name: string
   location: string
   capacity: number
@@ -48,7 +49,7 @@ export default function VenueCard(props: VenueCardProps) {
             <div className="w-full h-full bg-muted-foreground/8" />
           )}
           <div className="absolute top-3 left-3 bg-primary/90 text-primary-foreground text-[10px] px-2.5 py-1 rounded-full tracking-wide font-medium">
-            {props.isAvailable ? "Available" : "Unavailable"}
+            {(props.isAvailable ?? true) ? "Available" : "Unavailable"}
           </div>
         </div>
 
@@ -58,7 +59,9 @@ export default function VenueCard(props: VenueCardProps) {
               {props.name}
             </h3>
             <span className="text-base font-semibold text-primary whitespace-nowrap pt-0.5">
-              {props.price}
+              {typeof props.price === "number"
+                ? `₱${Number(props.price).toLocaleString()}`
+                : props.price}
             </span>
           </div>
 
@@ -69,7 +72,9 @@ export default function VenueCard(props: VenueCardProps) {
 
           <div className="flex items-center gap-1.5">
             <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-            <span className="text-[11px] text-muted-foreground truncate">{props.ownerName}</span>
+            <span className="text-[11px] text-muted-foreground truncate">
+              {props.ownerName}
+            </span>
           </div>
 
           <StarRating rating={props.rating} reviewCount={props.reviewCount} size="sm" />

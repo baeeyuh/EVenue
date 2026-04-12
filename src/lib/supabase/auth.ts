@@ -1,4 +1,5 @@
-import { supabase } from "../supabaseClient"
+import * as supabaseClient from "../supabaseClient"
+const supabase = (supabaseClient as any).supabase ?? (supabaseClient as any).default ?? (supabaseClient as any)
 
 type SignUpParams = {
   email: string
