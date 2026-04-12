@@ -1,11 +1,13 @@
 import OrganizationCard from "@/components/common/OrganizationCard"
-import { fetchOrganizations } from "@/lib/servises/organizations"
+import { fetchOrganizations } from "@/lib/services/organizations"
 
 export default async function FeaturedOrganizations() {
   let organizations: any[] = []
   try {
     organizations = await fetchOrganizations()
+    console.log("orgs data:", organizations) 
   } catch (err) {
+    console.error("orgs error:", err) 
     organizations = []
   }
 

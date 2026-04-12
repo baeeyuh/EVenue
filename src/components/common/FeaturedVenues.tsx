@@ -1,5 +1,5 @@
 import VenueCard from "@/components/common/VenueCard"
-import { fetchVenues } from "@/lib/servises/venues"
+import { fetchVenues } from "@/lib/services/venues"
 
 export default async function FeaturedVenues() {
   let venues: any[] = []
