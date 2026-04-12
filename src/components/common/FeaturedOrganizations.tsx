@@ -1,15 +1,8 @@
 import OrganizationCard from "@/components/common/OrganizationCard"
-import { fetchOrganizations } from "@/lib/services/organizations"
+import { fetchFeaturedOrganizations } from "@/lib/services/organizations"
 
 export default async function FeaturedOrganizations() {
-  let organizations: any[] = []
-  try {
-    organizations = await fetchOrganizations()
-    console.log("orgs data:", organizations) 
-  } catch (err) {
-    console.error("orgs error:", err) 
-    organizations = []
-  }
+  const organizations = await fetchFeaturedOrganizations()
 
   return (
     <section className="mx-auto max-w-7xl px-6 pb-16">
@@ -23,7 +16,7 @@ export default async function FeaturedOrganizations() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {organizations.map((organization: any) => (
+        {organizations.map((organization) => (
           <OrganizationCard key={organization.id} {...organization} />
         ))}
       </div>

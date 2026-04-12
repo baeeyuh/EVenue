@@ -9,8 +9,10 @@ import Link from "next/link"
 import { useAuthFields } from "@/types/types"
 import { signUp } from "@/lib/supabase/auth"
 import { isValidEmail } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 export default function SignUpForm() {
+  const router = useRouter()
   const [role, setRole] = useState<Role | null>(null)
   const { firstName, setFirstName, lastName, setLastName, email, setEmail, password, setPassword } =
     useAuthFields()
@@ -72,7 +74,10 @@ export default function SignUpForm() {
     try {
       const { data, error } = await signUp({ email, password, firstName, lastName })
       if (error) setError(error.message ?? "Sign-up failed")
-      else console.log("Sign up created:", data)
+      else {
+        console.log("Sign up created:", data)
+        router.push("/authentication/login?signup=success")
+      }
     } catch (err: any) {
       setError(err?.message ?? "An unexpected error occurred")
     } finally {
