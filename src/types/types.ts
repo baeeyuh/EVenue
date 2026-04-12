@@ -1,5 +1,32 @@
 import { useState } from "react"
 
+export type Organization = {
+	id: string
+	name: string
+	logo: string
+	location: string
+	description: string
+	venueCount: number
+}
+
+export type Venue = {
+	id: string
+	organizationId: string
+	name: string
+	location: string
+	capacity: number
+	price: string
+	image: string
+	amenities: string[]
+	rating: number
+	reviewCount: number
+	ownerName: string
+	ownerInitials: string
+	description?: string
+	venueType?: string
+	isAvailable?: boolean
+}
+
 export type AuthFields = {
 	email: string
 	password: string
