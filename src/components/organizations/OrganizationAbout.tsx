@@ -6,16 +6,36 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { Organization } from "@/lib/types"
 
-export default function OrganizationAbout({ org }: { org: Organization & {
-  phone?: string
-  email?: string
-  website?: string
-  instagram?: string
-  facebook?: string
-  specializations?: string[]
-  openingHours?: string
-  gallery?: string[]
-} }) {
+type OrganizationSocial = {
+  platform: string
+  url: string
+}
+
+export default function OrganizationAbout({
+  org,
+}: {
+  org: Organization & {
+    phone?: string
+    email?: string
+    website?: string
+    instagram?: string
+    facebook?: string
+    specializations?: string[]
+    opening_hours?: string
+    openingHours?: string
+    gallery?: string[]
+    organization_socials?: OrganizationSocial[]
+  }
+}) {
+  const socials = org.organization_socials ?? []
+  const socialWebsite = socials.find((social) => social.platform === "website")?.url
+  const socialInstagram = socials.find((social) => social.platform === "instagram")?.url
+  const socialFacebook = socials.find((social) => social.platform === "facebook")?.url
+
+  const website = org.website ?? socialWebsite
+  const instagram = org.instagram ?? socialInstagram
+  const facebook = org.facebook ?? socialFacebook
+
   return (
     <div className="space-y-6 sticky top-24">
 
@@ -26,7 +46,7 @@ export default function OrganizationAbout({ org }: { org: Organization & {
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
           <Clock className="w-3.5 h-3.5 shrink-0" />
-          {org.openingHours}
+          {org.opening_hours ?? org.openingHours}
         </div>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -60,21 +80,21 @@ export default function OrganizationAbout({ org }: { org: Organization & {
               { icon: Mail, label: org.email, href: org.email ? `mailto:${org.email}` : undefined },
               {
                 icon: Globe,
-                label: org.website,
-                href: org.website
-                  ? org.website.startsWith("http")
-                    ? org.website
-                    : `https://${org.website}`
+                label: website,
+                href: website
+                  ? website.startsWith("http")
+                    ? website
+                    : `https://${website}`
                   : undefined,
               },
               {
                 icon: Camera,
-                label: org.instagram,
-                href: org.instagram
-                  ? `https://instagram.com/${org.instagram.replace("@", "")}`
+                label: instagram,
+                href: instagram
+                  ? `https://instagram.com/${instagram.replace("@", "")}`
                   : undefined,
               },
-              { icon: Users, label: org.facebook, href: org.facebook ? `https://facebook.com/${org.facebook}` : undefined },
+              { icon: Users, label: facebook, href: facebook ? `https://facebook.com/${facebook}` : undefined },
             ]
           )
             .filter((c) => c.label)

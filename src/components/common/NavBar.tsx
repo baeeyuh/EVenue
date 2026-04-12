@@ -14,7 +14,8 @@ export default function NavBar() {
               alt="EVenue logo"
               width={160}
               height={160}
-              className="object-contain w-auto h-12"
+              className="object-contain"
+              style={{ width: "auto", height: "3rem" }}
             />
           </div>
         </Link>
