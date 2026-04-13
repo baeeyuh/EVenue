@@ -24,7 +24,6 @@ export default function LoginForm() {
 
   useEffect(() => {
     if (searchParams.get("signup") !== "success") return
-
     toast.success("Account created successfully. Please log in.")
     router.replace(pathname)
   }, [searchParams, router, pathname])
@@ -63,8 +62,14 @@ export default function LoginForm() {
 
     try {
       const { data, error } = await signIn({ email, password })
-      if (error) setError(error.message ?? "Sign-in failed")
-      else console.log("Signed in:", data)
+      if (error || !data) {
+        setError(error?.message ?? "Sign-in failed")
+      } else {
+        toast.success("Welcome back!")
+        const role = data?.user?.user_metadata?.role
+        if (role === "owner") router.push("/dashboard/owner")
+        else router.push("/dashboard/customer")
+      }
     } catch (err: any) {
       setError(err?.message ?? "An unexpected error occurred")
     } finally {
@@ -117,9 +122,7 @@ export default function LoginForm() {
 
       <Button
         onClick={handleLogin}
-        disabled={
-          loading || !email || !password || !isValidEmail(email)
-        }
+        disabled={loading || !email || !password || !isValidEmail(email)}
         className="w-full rounded-full bg-primary hover:bg-[#1a3148] text-white"
       >
         {loading ? "Signing in..." : "Log In"}
