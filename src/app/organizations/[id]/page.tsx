@@ -55,7 +55,7 @@ export default async function OrganizationPublicPage({ params }: Props) {
     established: org.established ?? undefined,
     specializations: org.specializations ?? [],
     gallery: org.gallery ?? [],
-    venue_count: orgVenues.length,
+    venue_count: orgRatings?.venue_count ?? orgVenues.length,
     rating: orgRatings?.rating,
     review_count: orgRatings?.review_count,
     organization_socials: orgSocials,

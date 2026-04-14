@@ -34,41 +34,69 @@ export type OrganizationSocialRow = {
 type OrganizationRatingRow = {
   id: string | null
   name: string | null
+  total_venues: number | string | null
   avg_rating: number | string | null
   total_reviews: number | string | null
 }
 
 export type OrganizationRatingSummary = {
+  venue_count: number
   rating: number
   review_count: number
 }
 
 function mapOrganizationRating(row: OrganizationRatingRow): OrganizationRatingSummary {
   return {
+    venue_count: Number(row.total_venues ?? 0),
     rating: Number(row.avg_rating ?? 0),
     review_count: Number(row.total_reviews ?? 0),
   }
 }
 
 export async function fetchOrganizations(): Promise<Organization[]> {
-  const { data, error } = await supabaseServer
-    .from("organizations")
-    .select("id, name, logo, location, description")
-    .limit(10)
+  const [{ data: organizationsData, error: organizationsError }, { data: ratingsData, error: ratingsError }] =
+    await Promise.all([
+      supabaseServer
+        .from("organizations")
+        .select("id, name, logo, location, description")
+        .limit(10),
+      supabaseServer
+        .from("organization_ratings")
+        .select("id, name, total_venues, avg_rating, total_reviews"),
+    ])
 
-  if (error) {
-    console.error(error)
+  if (organizationsError) {
+    console.error(organizationsError)
     throw new Error("Failed to fetch organizations")
   }
 
-  return ((data ?? []) as OrganizationRow[]).map((organization) => ({
+  if (ratingsError) {
+    console.error(ratingsError)
+  }
+
+  const ratingRows = (ratingsData ?? []) as OrganizationRatingRow[]
+  const ratings = ratingRows.map((row) => mapOrganizationRating(row))
+  const ratingsById = new Map<string, OrganizationRatingSummary>()
+  const ratingsByName = new Map<string, OrganizationRatingSummary>()
+
+  ratingRows.forEach((row, index) => {
+    const mapped = ratings[index]
+    if (row.id) ratingsById.set(row.id, mapped)
+    if (row.name) ratingsByName.set(row.name, mapped)
+  })
+
+  return ((organizationsData ?? []) as OrganizationRow[]).map((organization) => {
+    const rating = ratingsById.get(organization.id) ?? ratingsByName.get(organization.name)
+
+    return {
     id: organization.id,
     name: organization.name,
     logo: organization.logo ?? "",
     location: organization.location ?? "",
     description: organization.description ?? "",
-    venueCount: 0,
-  }))
+    venueCount: rating?.venue_count ?? 0,
+  }
+  })
 }
 
 export async function fetchFeaturedOrganizations(): Promise<Organization[]> {
@@ -124,7 +152,7 @@ export async function fetchOrganizationRatingByOrganization(
 ): Promise<OrganizationRatingSummary | null> {
   const { data: dataById, error: errorById } = await supabaseServer
     .from("organization_ratings")
-    .select("id, name, avg_rating, total_reviews")
+    .select("id, name, total_venues, avg_rating, total_reviews")
     .eq("id", organizationId)
     .maybeSingle()
 
@@ -138,7 +166,7 @@ export async function fetchOrganizationRatingByOrganization(
 
   const { data: dataByName, error: errorByName } = await supabaseServer
     .from("organization_ratings")
-    .select("id, name, avg_rating, total_reviews")
+    .select("id, name, total_venues, avg_rating, total_reviews")
     .eq("name", organizationName)
     .maybeSingle()
 
