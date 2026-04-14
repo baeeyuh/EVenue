@@ -1,21 +1,6 @@
 import { supabaseServer } from "@/lib/supabaseServer"
-import { headers } from "next/headers"
 import type { Venue } from "@/types/types"
-
-type VenueRow = {
-  id: string
-  organization_id: string | null
-  name: string
-  location: string | null
-  capacity: number | null
-  price: number | null
-  image: string | null
-  rating: number | null
-  review_count: number | null
-  description: string | null
-  venue_type: string | null
-  is_available: boolean | null
-}
+import { DEFAULT_VENUE_FILTERS, type VenueFilters } from "@/lib/venue-filters"
 
 export type VenueDetailsRow = {
   id: string
@@ -32,18 +17,29 @@ export type VenueDetailsRow = {
   is_available: boolean | null
 }
 
-export async function fetchVenues(): Promise<Venue[]> {
-  const { data, error } = await supabaseServer
-    .from("venues")
-    .select("id, organization_id, name, location, capacity, price, image, rating, review_count, description, venue_type, is_available")
-    .limit(10)
+type VenueRpcRow = VenueDetailsRow & {
+  created_at: string | null
+}
+
+export async function fetchVenues(filters: Partial<VenueFilters> = {}): Promise<Venue[]> {
+  const resolved = { ...DEFAULT_VENUE_FILTERS, ...filters }
+
+  const { data, error } = await supabaseServer.rpc("filter_venues", {
+    min_budget: resolved.minBudget,
+    max_budget: resolved.maxBudget,
+    min_pax: resolved.minPax,
+    max_pax: resolved.maxPax,
+    location_param: resolved.location || null,
+    search: resolved.search || null,
+    amenities: resolved.amenities.length > 0 ? resolved.amenities : null,
+  })
 
   if (error) {
     console.error(error)
     throw new Error("Failed to fetch venues")
   }
 
-  return ((data ?? []) as VenueRow[]).map((venue) => ({
+  return ((data ?? []) as VenueRpcRow[]).map((venue) => ({
     id: venue.id,
     organizationId: venue.organization_id ?? "",
     name: venue.name,
@@ -64,17 +60,7 @@ export async function fetchVenues(): Promise<Venue[]> {
 
 export async function fetchFeaturedVenues(): Promise<Venue[]> {
   try {
-    const requestHeaders = await headers()
-    const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host")
-
-    if (!host) return []
-
-    const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.includes("localhost") ? "http" : "https")
-    const response = await fetch(`${protocol}://${host}/api/venues`, { cache: "no-store" })
-
-    if (!response.ok) return []
-
-    return (await response.json()) as Venue[]
+    return await fetchVenues()
   } catch {
     return []
   }
