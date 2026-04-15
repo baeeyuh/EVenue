@@ -1,8 +1,13 @@
 import VenueCard from "@/components/common/VenueCard"
-import { fetchFeaturedVenues } from "@/lib/services/venues"
+import { fetchVenues } from "@/lib/services/venues"
+import type { VenueFilters } from "@/lib/venue-filters"
 
-export default async function FeaturedVenues() {
-  const venues = await fetchFeaturedVenues()
+type FeaturedVenuesProps = {
+  filters: VenueFilters
+}
+
+export default async function FeaturedVenues({ filters }: FeaturedVenuesProps) {
+  const venues = await fetchVenues(filters)
 
   return (
     <section className="mx-auto max-w-7xl px-6 pb-14">
@@ -18,6 +23,10 @@ export default async function FeaturedVenues() {
           <VenueCard key={venue.id} {...venue} />
         ))}
       </div>
+
+      {venues.length === 0 && (
+        <p className="mt-6 text-sm text-muted-foreground">No venues match your selected filters.</p>
+      )}
     </section>
   )
 }

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Search, Users, Wallet, MapPin, Check, ChevronsUpDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
@@ -19,15 +20,21 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { cn } from "@/lib/utils"
+import {
+  MAX_BUDGET,
+  MAX_PAX,
+  type VenueFilters,
+  venueFiltersToSearchParams,
+} from "@/lib/venue-filters"
 
 const locations = [
-  { value: "all", label: "All locations" },
-  { value: "cdo", label: "Cagayan de Oro" },
-  { value: "iligan", label: "Iligan City" },
-  { value: "bukidnon", label: "Bukidnon" },
-  { value: "davao", label: "Davao City" },
-  { value: "cebu", label: "Cebu City" },
-  { value: "manila", label: "Metro Manila" },
+  { value: "", label: "All locations" },
+  { value: "Cagayan de Oro", label: "Cagayan de Oro" },
+  { value: "Iligan City", label: "Iligan City" },
+  { value: "Bukidnon", label: "Bukidnon" },
+  { value: "Davao City", label: "Davao City" },
+  { value: "Cebu City", label: "Cebu City" },
+  { value: "Metro Manila", label: "Metro Manila" },
 ]
 
 const amenities = [
@@ -35,20 +42,56 @@ const amenities = [
   "WiFi", "Rooftop", "Garden", "Pool",
 ]
 
-const MAX_BUDGET = 200000
-const MAX_PAX = 1000
+type FilterSectionProps = {
+  initialFilters: VenueFilters
+}
 
-export default function FilterSection() {
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
+export default function FilterSection({ initialFilters }: FilterSectionProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  const [search, setSearch] = useState(initialFilters.search)
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>(initialFilters.amenities)
   const [locationOpen, setLocationOpen] = useState(false)
-  const [location, setLocation] = useState("")
-  const [budgetRange, setBudgetRange] = useState<[number, number]>([0, MAX_BUDGET])
-  const [paxRange, setPaxRange] = useState<[number, number]>([0, MAX_PAX])
+  const [location, setLocation] = useState(initialFilters.location)
+  const [budgetRange, setBudgetRange] = useState<[number, number]>([initialFilters.minBudget, initialFilters.maxBudget])
+  const [paxRange, setPaxRange] = useState<[number, number]>([initialFilters.minPax, initialFilters.maxPax])
+
+  useEffect(() => {
+    setSearch(initialFilters.search)
+    setSelectedAmenities(initialFilters.amenities)
+    setLocation(initialFilters.location)
+    setBudgetRange([initialFilters.minBudget, initialFilters.maxBudget])
+    setPaxRange([initialFilters.minPax, initialFilters.maxPax])
+  }, [initialFilters])
 
   const toggleAmenity = (a: string) =>
     setSelectedAmenities((prev) =>
       prev.includes(a) ? prev.filter((i) => i !== a) : [...prev, a]
     )
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const nextParams = venueFiltersToSearchParams({
+        search,
+        location,
+        amenities: selectedAmenities,
+        minBudget: budgetRange[0],
+        maxBudget: budgetRange[1],
+        minPax: paxRange[0],
+        maxPax: paxRange[1],
+      }).toString()
+
+      const currentParams = searchParams.toString()
+
+      if (nextParams !== currentParams) {
+        router.replace(nextParams ? `${pathname}?${nextParams}` : pathname, { scroll: false })
+      }
+    }, 250)
+
+    return () => clearTimeout(timeout)
+  }, [search, location, selectedAmenities, budgetRange, paxRange, router, pathname, searchParams])
 
   const selectedLabel = locations.find((l) => l.value === location)?.label
 
@@ -64,6 +107,8 @@ export default function FilterSection() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
               placeholder="Search venues..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               className="h-10 rounded-2xl border-border/60 bg-background pl-9 text-sm"
             />
           </div>
@@ -119,7 +164,10 @@ export default function FilterSection() {
                 type="number"
                 placeholder="Min budget"
                 value={budgetRange[0] === 0 ? "" : budgetRange[0]}
-                onChange={(e) => setBudgetRange([Number(e.target.value) || 0, budgetRange[1]])}
+                onChange={(e) => {
+                  const nextMin = Number(e.target.value) || 0
+                  setBudgetRange([Math.min(nextMin, budgetRange[1]), budgetRange[1]])
+                }}
                 className="h-10 rounded-2xl border-border/60 bg-background pl-6 text-sm"
               />
             </div>
@@ -130,7 +178,10 @@ export default function FilterSection() {
                 type="number"
                 placeholder="Max budget"
                 value={budgetRange[1] === MAX_BUDGET ? "" : budgetRange[1]}
-                onChange={(e) => setBudgetRange([budgetRange[0], Number(e.target.value) || MAX_BUDGET])}
+                onChange={(e) => {
+                  const nextMax = Number(e.target.value) || MAX_BUDGET
+                  setBudgetRange([budgetRange[0], Math.max(nextMax, budgetRange[0])])
+                }}
                 className="h-10 rounded-2xl border-border/60 bg-background pl-6 text-sm"
               />
             </div>
@@ -142,7 +193,10 @@ export default function FilterSection() {
               type="number"
               placeholder="Min pax"
               value={paxRange[0] === 0 ? "" : paxRange[0]}
-              onChange={(e) => setPaxRange([Number(e.target.value) || 0, paxRange[1]])}
+              onChange={(e) => {
+                const nextMin = Number(e.target.value) || 0
+                setPaxRange([Math.min(nextMin, paxRange[1]), paxRange[1]])
+              }}
               className="h-10 rounded-2xl border-border/60 bg-background text-sm"
             />
             <span className="text-xs text-muted-foreground">—</span>
@@ -150,7 +204,10 @@ export default function FilterSection() {
               type="number"
               placeholder="Max pax"
               value={paxRange[1] === MAX_PAX ? "" : paxRange[1]}
-              onChange={(e) => setPaxRange([paxRange[0], Number(e.target.value) || MAX_PAX])}
+              onChange={(e) => {
+                const nextMax = Number(e.target.value) || MAX_PAX
+                setPaxRange([paxRange[0], Math.max(nextMax, paxRange[0])])
+              }}
               className="h-10 rounded-2xl border-border/60 bg-background text-sm"
             />
           </div>
