@@ -56,7 +56,7 @@ export default function HeroSection() {
 
         <div className="relative">
           <div className="relative overflow-hidden rounded-[2rem] border bg-card shadow-xl">
-            <div className="relative h-[420px] w-full">
+            <div className="relative h-420px w-full">
               <Image
                 src="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=80"
                 alt="Elegant event venue"
