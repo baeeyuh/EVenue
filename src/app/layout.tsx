@@ -1,44 +1,58 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono, Source_Sans_3, Playfair_Display } from "next/font/google";
-import "./globals.css";
-import { cn } from "@/lib/utils";
-import NavBar from "@/components/common/NavBar";
-import { Toaster } from "@/components/ui/sonner";
+import type { Metadata } from "next"
+import { Geist, Geist_Mono, Source_Sans_3, Playfair_Display } from "next/font/google"
+import "./globals.css"
+import { cn } from "@/lib/utils"
+import { Toaster } from "@/components/ui/sonner"
+import AppNavbar from "@/components/navbar/AppNavBar"
 
-const playfairDisplayHeading = Playfair_Display({subsets:['latin'],variable:'--font-heading'});
+const playfairDisplayHeading = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-heading",
+})
 
-const sourceSans3 = Source_Sans_3({subsets:['latin'],variable:'--font-sans'});
+const sourceSans3 = Source_Sans_3({
+  subsets: ["latin"],
+  variable: "--font-sans",
+})
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-});
+})
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
+})
 
 export const metadata: Metadata = {
   title: "EVenue",
   description: "Find and Book Event Venues Easily",
-};
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html
       lang="en"
-      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", sourceSans3.variable, playfairDisplayHeading.variable)}
+      className={cn(
+        "h-full",
+        "antialiased",
+        geistSans.variable,
+        geistMono.variable,
+        sourceSans3.variable,
+        playfairDisplayHeading.variable,
+        "font-sans"
+      )}
     >
       <body className="min-h-full flex flex-col">
-          <NavBar />
-          {children}
-          <Toaster richColors position="top-right" />
+        <AppNavbar />
+        {children}
+        <Toaster richColors position="top-right" />
       </body>
     </html>
-  );
+  )
 }
