@@ -17,6 +17,21 @@ type VenueRow = {
   is_available: boolean | null
 }
 
+export type VenueDetailsRow = {
+  id: string
+  organization_id: string | null
+  name: string
+  location: string | null
+  capacity: number | null
+  price: number | null
+  image: string | null
+  rating: number | null
+  review_count: number | null
+  description: string | null
+  venue_type: string | null
+  is_available: boolean | null
+}
+
 export async function fetchVenues(): Promise<Venue[]> {
   const { data, error } = await supabaseServer
     .from("venues")
@@ -63,4 +78,18 @@ export async function fetchFeaturedVenues(): Promise<Venue[]> {
   } catch {
     return []
   }
+}
+
+export async function fetchVenuesByOrganizationId(id: string): Promise<VenueDetailsRow[]> {
+  const { data, error } = await supabaseServer
+    .from("venues")
+    .select("id, organization_id, name, location, capacity, price, image, rating, review_count, description, venue_type, is_available")
+    .eq("organization_id", id)
+
+  if (error) {
+    console.error(error)
+    return []
+  }
+
+  return (data as VenueDetailsRow[] | null) ?? []
 }
