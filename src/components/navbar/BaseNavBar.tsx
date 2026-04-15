@@ -148,7 +148,7 @@ export default function BaseNavBar({
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
                       {initials || "U"}
                     </div>
-                    <span className="text-sm font-medium">{firstName}</span>
+                    <span className="text-sm font-serif font-medium">{firstName}</span>
                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   </button>
                 </DropdownMenuTrigger>
