@@ -1,15 +1,19 @@
-import Image from "next/image"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
+import { fetchFeaturedVenues } from "@/lib/services/venues"
+import HeroVenueCarousel from "@/components/common/HeroVenueCarousel"
 
-export default function HeroSection() {
+export default async function HeroSection() {
+  const venues = await fetchFeaturedVenues()
+  const featuredVenues = venues.slice(0, 5)
+
   return (
     <section className="relative overflow-hidden">
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-secondary/30 via-background to-background" />
       <div className="absolute left-1/2 top-0 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
 
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 pt-8 pb-6 md:pt-10 md:pb-8 lg:grid-cols-2 lg:items-center">
+      <div className="mx-auto grid max-w-7xl gap-10 px-6 pb-6 pt-8 md:pb-8 md:pt-10 lg:grid-cols-2 lg:items-center">
         <div className="space-y-6">
           <p className="px-1 text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
             Discover & Book Now
@@ -54,29 +58,7 @@ export default function HeroSection() {
           </div>
         </div>
 
-        <div className="relative">
-          <div className="relative overflow-hidden rounded-[2rem] border bg-card shadow-xl">
-            <div className="relative h-[420px] w-full">
-              <Image
-                src="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=80"
-                alt="Elegant event venue"
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover"
-              />
-            </div>
-
-            <div className="absolute inset-x-0 bottom-0 p-5">
-              <div className="rounded-[1.5rem] border border-white/20 bg-black/35 p-4 text-white backdrop-blur-md">
-                <p className="text-lg font-semibold">Glasshaus Events Place</p>
-                <p className="text-sm text-white/80">
-                  Cagayan de Oro City • 180 pax • ₱45,000
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <HeroVenueCarousel venues={featuredVenues} />
       </div>
     </section>
   )
