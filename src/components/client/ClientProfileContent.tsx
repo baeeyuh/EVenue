@@ -1,9 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { supabaseClient } from "@/lib/supabaseClient"
 
 type ProfileResponse = {
@@ -13,6 +10,10 @@ type ProfileResponse = {
   email: string | null
   role: string | null
   created_at: string | null
+}
+
+function getInitials(first: string, last: string) {
+  return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase() || "?"
 }
 
 export default function ClientProfileContent() {
@@ -34,10 +35,7 @@ export default function ClientProfileContent() {
       setError(null)
       setSuccess(null)
 
-      const {
-        data: { session },
-      } = await supabaseClient.auth.getSession()
-
+      const { data: { session } } = await supabaseClient.auth.getSession()
       const user = session?.user
       const token = session?.access_token
 
@@ -54,18 +52,11 @@ export default function ClientProfileContent() {
       try {
         const response = await fetch("/api/client/profile", {
           cache: "no-store",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         })
-
-        if (!response.ok) {
-          throw new Error("Failed to load profile")
-        }
-
+        if (!response.ok) throw new Error("Failed to load profile")
         const profile = (await response.json()) as ProfileResponse | null
         if (!active) return
-
         if (profile) {
           setFirstName(profile.first_name ?? "")
           setLastName(profile.last_name ?? "")
@@ -82,41 +73,25 @@ export default function ClientProfileContent() {
     }
 
     void loadProfile()
-
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [])
 
   async function handleSave() {
     if (!accessToken) return
-
     if (!firstName.trim() && !lastName.trim()) {
       setError("At least one name field is required")
       return
     }
-
     setSaving(true)
     setError(null)
     setSuccess(null)
-
     try {
       const response = await fetch("/api/client/profile", {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          firstName,
-          lastName,
-        }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ firstName, lastName }),
       })
-
-      if (!response.ok) {
-        throw new Error("Failed to update profile")
-      }
-
+      if (!response.ok) throw new Error("Failed to update profile")
       setSuccess("Profile updated successfully")
     } catch (updateError: unknown) {
       setError(updateError instanceof Error ? updateError.message : "Failed to update profile")
@@ -125,58 +100,167 @@ export default function ClientProfileContent() {
     }
   }
 
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "10px 14px",
+    fontSize: 14,
+    color: "#0f1117",
+    background: "#ffffff",
+    border: "1px solid #e2e0da",
+    borderRadius: 10,
+    outline: "none",
+    boxSizing: "border-box",
+    transition: "border-color 0.15s",
+    fontFamily: "var(--font-sans, sans-serif)",
+  }
+
+  const readonlyInputStyle: React.CSSProperties = {
+    ...inputStyle,
+    background: "#f7f6f3",
+    color: "#9a9a9a",
+    cursor: "default",
+  }
+
+  const labelStyle: React.CSSProperties = {
+    display: "block",
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    color: "#9a9a9a",
+    marginBottom: 7,
+  }
+
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <section className="border-b border-border/50 bg-muted/20">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <p className="text-sm font-medium text-primary">Profile</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">My Profile</h1>
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+    <main style={{ minHeight: "100vh", background: "#fafaf8", color: "#1a1a1a", fontFamily: "var(--font-sans, sans-serif)" }}>
+
+      {/* Page Header */}
+      <section style={{ borderBottom: "1px solid #e8e6e0", background: "#ffffff" }}>
+        <div style={{ maxWidth: 700, margin: "0 auto", padding: "48px 24px 40px" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1d3557", marginBottom: 10 }}>
+            Account
+          </p>
+          <h1 style={{ fontSize: 36, fontWeight: 400, letterSpacing: "-0.02em", color: "#0f1117", margin: "0 0 12px", fontFamily: "Georgia, 'Times New Roman', serif" }}>
+            My Profile
+          </h1>
+          <p style={{ fontSize: 14, color: "#6b6b6b", margin: 0, maxWidth: 480, lineHeight: 1.65 }}>
             Manage your account information and keep your event planning details updated.
           </p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Content */}
+      <section style={{ maxWidth: 700, margin: "0 auto", padding: "40px 24px" }}>
+
         {loading && (
-          <p className="mb-4 text-sm text-muted-foreground">Loading profile...</p>
+          <p style={{ fontSize: 14, color: "#9a9a9a", marginBottom: 24 }}>Loading profile…</p>
         )}
-
         {error && !loading && (
-          <p className="mb-4 text-sm text-destructive">{error}</p>
+          <div style={{ background: "#fdf0f0", border: "1px solid #f0b8b8", borderRadius: 10, padding: "12px 16px", marginBottom: 20 }}>
+            <p style={{ fontSize: 13, color: "#8c2222", margin: 0 }}>{error}</p>
+          </div>
         )}
-
         {success && !loading && (
-          <p className="mb-4 text-sm text-primary">{success}</p>
+          <div style={{ background: "#e8f5ee", border: "1px solid #b6dfc8", borderRadius: 10, padding: "12px 16px", marginBottom: 20 }}>
+            <p style={{ fontSize: 13, color: "#1a5c35", margin: 0 }}>{success}</p>
+          </div>
         )}
 
-        <div className="rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input id="firstName" value={firstName} onChange={(event) => setFirstName(event.target.value)} />
+        {/* Avatar + name card */}
+        <div style={{
+          background: "#ffffff",
+          border: "1px solid #e8e6e0",
+          borderRadius: 16,
+          padding: "28px",
+          marginBottom: 16,
+          display: "flex",
+          alignItems: "center",
+          gap: 20,
+        }}>
+          <div style={{
+            width: 60, height: 60, borderRadius: "50%",
+            background: "#1d3557",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 20, fontWeight: 600, color: "#ffffff",
+            flexShrink: 0,
+            fontFamily: "Georgia, 'Times New Roman', serif",
+          }}>
+            {getInitials(firstName, lastName)}
+          </div>
+          <div>
+            <p style={{ fontSize: 18, fontWeight: 500, color: "#0f1117", margin: "0 0 4px", fontFamily: "Georgia, 'Times New Roman', serif" }}>
+              {firstName || lastName ? `${firstName} ${lastName}`.trim() : "Your Name"}
+            </p>
+            <p style={{ fontSize: 13, color: "#9a9a9a", margin: 0 }}>{email}</p>
+          </div>
+        </div>
+
+        {/* Form card */}
+        <div style={{
+          background: "#ffffff",
+          border: "1px solid #e8e6e0",
+          borderRadius: 16,
+          padding: "28px",
+        }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: "#0f1117", margin: "0 0 24px", letterSpacing: "-0.01em" }}>
+            Personal Information
+          </p>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 20px" }}>
+            <div>
+              <label style={labelStyle}>First Name</label>
+              <input
+                style={inputStyle}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "#1d3557" }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "#e2e0da" }}
+                placeholder="First name"
+              />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input id="lastName" value={lastName} onChange={(event) => setLastName(event.target.value)} />
+            <div>
+              <label style={labelStyle}>Last Name</label>
+              <input
+                style={inputStyle}
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "#1d3557" }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "#e2e0da" }}
+                placeholder="Last name"
+              />
             </div>
 
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} readOnly />
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={labelStyle}>Email Address</label>
+              <input style={readonlyInputStyle} type="email" value={email} readOnly />
             </div>
 
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="role">Role</Label>
-              <Input id="role" value={role} readOnly />
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={labelStyle}>Role</label>
+              <input style={readonlyInputStyle} value={role} readOnly />
             </div>
           </div>
 
-          <div className="mt-6 flex justify-end">
-            <Button className="rounded-full px-6" onClick={() => void handleSave()} disabled={loading || saving || !accessToken || (!firstName.trim() && !lastName.trim())}>
-              {saving ? "Saving..." : "Save Changes"}
-            </Button>
+          {/* Footer */}
+          <div style={{ borderTop: "1px solid #f0eee8", marginTop: 28, paddingTop: 20, display: "flex", justifyContent: "flex-end" }}>
+            <button
+              onClick={() => { void handleSave() }}
+              disabled={loading || saving || !accessToken || (!firstName.trim() && !lastName.trim())}
+              style={{
+                fontSize: 13, fontWeight: 500,
+                color: "#ffffff",
+                background: loading || saving || !accessToken || (!firstName.trim() && !lastName.trim()) ? "#a0aab8" : "#1d3557",
+                border: "none",
+                borderRadius: 24, padding: "10px 24px",
+                cursor: loading || saving || !accessToken || (!firstName.trim() && !lastName.trim()) ? "not-allowed" : "pointer",
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={(e) => { if (!loading && !saving) e.currentTarget.style.background = "#16294a" }}
+              onMouseLeave={(e) => { if (!loading && !saving) e.currentTarget.style.background = "#1d3557" }}
+            >
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
           </div>
         </div>
       </section>
