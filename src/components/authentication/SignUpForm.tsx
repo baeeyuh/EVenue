@@ -28,8 +28,8 @@ export default function SignUpForm() {
   } = useAuthFields()
 
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [businessName, setBusinessName] = useState("")
   const [contactNumber, setContactNumber] = useState("")
+  const [businessName, setBusinessName] = useState("")
   const [businessAddress, setBusinessAddress] = useState("")
   const [city, setCity] = useState("")
   const [province, setProvince] = useState("")
@@ -72,6 +72,13 @@ export default function SignUpForm() {
       setLoading(false)
       inFlightRef.current = false
       setError("Last name is required")
+      return
+    }
+
+    if (!contactNumber.trim()) {
+      setLoading(false)
+      inFlightRef.current = false
+      setError("Contact number is required")
       return
     }
 
@@ -118,13 +125,6 @@ export default function SignUpForm() {
         return
       }
 
-      if (!contactNumber.trim()) {
-        setLoading(false)
-        inFlightRef.current = false
-        setError("Contact number is required")
-        return
-      }
-
       if (!businessAddress.trim()) {
         setLoading(false)
         inFlightRef.current = false
@@ -153,9 +153,9 @@ export default function SignUpForm() {
         password,
         firstName,
         lastName,
+        contactNumber,
         role,
         businessName: isOwner ? businessName : undefined,
-        contactNumber: isOwner ? contactNumber : undefined,
         businessAddress: isOwner ? businessAddress : undefined,
         city: isOwner ? city : undefined,
         province: isOwner ? province : undefined,
@@ -213,33 +213,31 @@ export default function SignUpForm() {
         </div>
       </div>
 
+      <div className="space-y-1.5">
+        <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">
+          Contact number
+        </Label>
+        <Input
+          type="tel"
+          placeholder="09XX XXX XXXX"
+          value={contactNumber}
+          onChange={(e) => setContactNumber(e.target.value)}
+          className="h-9 border-border/60 bg-muted/50 text-sm"
+        />
+      </div>
+
       {isOwner && (
         <>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                Business name
-              </Label>
-              <Input
-                placeholder="Grand Palace Events Hall"
-                value={businessName}
-                onChange={(e) => setBusinessName(e.target.value)}
-                className="h-9 border-border/60 bg-muted/50 text-sm"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                Contact number
-              </Label>
-              <Input
-                type="tel"
-                placeholder="09XX XXX XXXX"
-                value={contactNumber}
-                onChange={(e) => setContactNumber(e.target.value)}
-                className="h-9 border-border/60 bg-muted/50 text-sm"
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">
+              Business name
+            </Label>
+            <Input
+              placeholder="Grand Palace Events Hall"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              className="h-9 border-border/60 bg-muted/50 text-sm"
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -332,6 +330,7 @@ export default function SignUpForm() {
           !role ||
           !firstName.trim() ||
           !lastName.trim() ||
+          !contactNumber.trim() ||
           !email ||
           !isValidEmail(email) ||
           !password ||
@@ -340,7 +339,6 @@ export default function SignUpForm() {
           password !== confirmPassword ||
           (isOwner &&
             (!businessName.trim() ||
-              !contactNumber.trim() ||
               !businessAddress.trim() ||
               !city.trim() ||
               !province.trim()))

@@ -1,13 +1,21 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { Mail, Phone, User2, ShieldCheck } from "lucide-react"
+
 import { supabaseClient } from "@/lib/supabaseClient"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 type ProfileResponse = {
   id: string
   first_name: string | null
   last_name: string | null
   email: string | null
+  contact_number: string | null
   role: string | null
   created_at: string | null
 }
@@ -16,12 +24,18 @@ function getInitials(first: string, last: string) {
   return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase() || "?"
 }
 
+function formatRole(role: string) {
+  if (!role) return "Not set"
+  return role.charAt(0).toUpperCase() + role.slice(1)
+}
+
 export default function ClientProfileContent() {
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [email, setEmail] = useState("")
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
-  const [role, setRole] = useState("buyer")
+  const [contactNumber, setContactNumber] = useState("")
+  const [role, setRole] = useState("")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,7 +49,10 @@ export default function ClientProfileContent() {
       setError(null)
       setSuccess(null)
 
-      const { data: { session } } = await supabaseClient.auth.getSession()
+      const {
+        data: { session },
+      } = await supabaseClient.auth.getSession()
+
       const user = session?.user
       const token = session?.access_token
 
@@ -54,14 +71,19 @@ export default function ClientProfileContent() {
           cache: "no-store",
           headers: { Authorization: `Bearer ${token}` },
         })
+
         if (!response.ok) throw new Error("Failed to load profile")
+
         const profile = (await response.json()) as ProfileResponse | null
+
         if (!active) return
+
         if (profile) {
           setFirstName(profile.first_name ?? "")
           setLastName(profile.last_name ?? "")
           setEmail(profile.email ?? user.email ?? "")
-          setRole(profile.role ?? "buyer")
+          setContactNumber(profile.contact_number ?? "")
+          setRole(profile.role ?? "")
         }
       } catch (fetchError: unknown) {
         if (!active) return
@@ -73,24 +95,34 @@ export default function ClientProfileContent() {
     }
 
     void loadProfile()
-    return () => { active = false }
+
+    return () => {
+      active = false
+    }
   }, [])
 
   async function handleSave() {
     if (!accessToken) return
+
     if (!firstName.trim() && !lastName.trim()) {
       setError("At least one name field is required")
       return
     }
+
     setSaving(true)
     setError(null)
     setSuccess(null)
+
     try {
       const response = await fetch("/api/client/profile", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify({ firstName, lastName }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ firstName, lastName, contactNumber }),
       })
+
       if (!response.ok) throw new Error("Failed to update profile")
       setSuccess("Profile updated successfully")
     } catch (updateError: unknown) {
@@ -100,169 +132,154 @@ export default function ClientProfileContent() {
     }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "10px 14px",
-    fontSize: 14,
-    color: "#0f1117",
-    background: "#ffffff",
-    border: "1px solid #e2e0da",
-    borderRadius: 10,
-    outline: "none",
-    boxSizing: "border-box",
-    transition: "border-color 0.15s",
-    fontFamily: "var(--font-sans, sans-serif)",
-  }
-
-  const readonlyInputStyle: React.CSSProperties = {
-    ...inputStyle,
-    background: "#f7f6f3",
-    color: "#9a9a9a",
-    cursor: "default",
-  }
-
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-    color: "#9a9a9a",
-    marginBottom: 7,
-  }
-
   return (
-    <main style={{ minHeight: "100vh", background: "#fafaf8", color: "#1a1a1a", fontFamily: "var(--font-sans, sans-serif)" }}>
-
-      {/* Page Header */}
-      <section style={{ borderBottom: "1px solid #e8e6e0", background: "#ffffff" }}>
-        <div style={{ maxWidth: 700, margin: "0 auto", padding: "48px 24px 40px" }}>
-          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1d3557", marginBottom: 10 }}>
+    <main className="min-h-screen bg-[#fafaf8] text-foreground">
+      <section className="border-b border-border/60 bg-background">
+        <div className="mx-auto max-w-3xl px-6 py-12">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
             Account
           </p>
-          <h1 style={{ fontSize: 36, fontWeight: 400, letterSpacing: "-0.02em", color: "#0f1117", margin: "0 0 12px", fontFamily: "Georgia, 'Times New Roman', serif" }}>
-            My Profile
-          </h1>
-          <p style={{ fontSize: 14, color: "#6b6b6b", margin: 0, maxWidth: 480, lineHeight: 1.65 }}>
+          <h1 className="font-serif text-4xl font-light tracking-tight">My Profile</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
             Manage your account information and keep your event planning details updated.
           </p>
         </div>
       </section>
 
-      {/* Content */}
-      <section style={{ maxWidth: 700, margin: "0 auto", padding: "40px 24px" }}>
+      <section className="mx-auto max-w-3xl space-y-4 px-6 py-10">
+        {loading && <p className="text-sm text-muted-foreground">Loading profile...</p>}
 
-        {loading && (
-          <p style={{ fontSize: 14, color: "#9a9a9a", marginBottom: 24 }}>Loading profile…</p>
-        )}
         {error && !loading && (
-          <div style={{ background: "#fdf0f0", border: "1px solid #f0b8b8", borderRadius: 10, padding: "12px 16px", marginBottom: 20 }}>
-            <p style={{ fontSize: 13, color: "#8c2222", margin: 0 }}>{error}</p>
-          </div>
+          <Card className="border-destructive/20 bg-destructive/5">
+            <CardContent className="p-4">
+              <p className="text-sm text-destructive">{error}</p>
+            </CardContent>
+          </Card>
         )}
+
         {success && !loading && (
-          <div style={{ background: "#e8f5ee", border: "1px solid #b6dfc8", borderRadius: 10, padding: "12px 16px", marginBottom: 20 }}>
-            <p style={{ fontSize: 13, color: "#1a5c35", margin: 0 }}>{success}</p>
-          </div>
+          <Card className="border-emerald-200 bg-emerald-50">
+            <CardContent className="p-4">
+              <p className="text-sm text-emerald-700">{success}</p>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Avatar + name card */}
-        <div style={{
-          background: "#ffffff",
-          border: "1px solid #e8e6e0",
-          borderRadius: 16,
-          padding: "28px",
-          marginBottom: 16,
-          display: "flex",
-          alignItems: "center",
-          gap: 20,
-        }}>
-          <div style={{
-            width: 60, height: 60, borderRadius: "50%",
-            background: "#1d3557",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 20, fontWeight: 600, color: "#ffffff",
-            flexShrink: 0,
-            fontFamily: "Georgia, 'Times New Roman', serif",
-          }}>
-            {getInitials(firstName, lastName)}
-          </div>
-          <div>
-            <p style={{ fontSize: 18, fontWeight: 500, color: "#0f1117", margin: "0 0 4px", fontFamily: "Georgia, 'Times New Roman', serif" }}>
-              {firstName || lastName ? `${firstName} ${lastName}`.trim() : "Your Name"}
-            </p>
-            <p style={{ fontSize: 13, color: "#9a9a9a", margin: 0 }}>{email}</p>
-          </div>
-        </div>
+        <Card className="border-border/60">
+          <CardContent className="flex items-center gap-4 p-6">
+            <Avatar className="h-16 w-16 border border-border/60">
+              <AvatarFallback className="bg-primary font-serif text-lg text-primary-foreground">
+                {getInitials(firstName, lastName)}
+              </AvatarFallback>
+            </Avatar>
 
-        {/* Form card */}
-        <div style={{
-          background: "#ffffff",
-          border: "1px solid #e8e6e0",
-          borderRadius: 16,
-          padding: "28px",
-        }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "#0f1117", margin: "0 0 24px", letterSpacing: "-0.01em" }}>
-            Personal Information
-          </p>
+            <div className="min-w-0">
+              <p className="font-serif text-xl font-light text-foreground">
+                {firstName || lastName ? `${firstName} ${lastName}`.trim() : "Your Name"}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">{email}</p>
+            </div>
+          </CardContent>
+        </Card>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 20px" }}>
-            <div>
-              <label style={labelStyle}>First Name</label>
-              <input
-                style={inputStyle}
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "#1d3557" }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = "#e2e0da" }}
-                placeholder="First name"
-              />
+        <Card className="border-border/60">
+          <CardHeader>
+            <CardTitle className="text-base">Personal Information</CardTitle>
+            <CardDescription>
+              Update your basic account details.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  First Name
+                </Label>
+                <div className="relative">
+                  <User2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="First name"
+                    className="h-11 rounded-xl border-border/60 bg-background pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Last Name
+                </Label>
+                <div className="relative">
+                  <User2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Last name"
+                    className="h-11 rounded-xl border-border/60 bg-background pl-10"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label style={labelStyle}>Last Name</label>
-              <input
-                style={inputStyle}
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "#1d3557" }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = "#e2e0da" }}
-                placeholder="Last name"
-              />
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Email Address
+              </Label>
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="email"
+                  value={email}
+                  readOnly
+                  className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10 text-muted-foreground"
+                />
+              </div>
             </div>
 
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label style={labelStyle}>Email Address</label>
-              <input style={readonlyInputStyle} type="email" value={email} readOnly />
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Contact Number
+              </Label>
+              <div className="relative">
+                <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={contactNumber}
+                  onChange={(e) => setContactNumber(e.target.value)}
+                  placeholder="09XX XXX XXXX"
+                  className="h-11 rounded-xl border-border/60 bg-background pl-10"
+                />
+              </div>
             </div>
 
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label style={labelStyle}>Role</label>
-              <input style={readonlyInputStyle} value={role} readOnly />
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Role
+              </Label>
+              <div className="relative">
+                <ShieldCheck className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={formatRole(role)}
+                  readOnly
+                  className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10 text-muted-foreground"
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Footer */}
-          <div style={{ borderTop: "1px solid #f0eee8", marginTop: 28, paddingTop: 20, display: "flex", justifyContent: "flex-end" }}>
-            <button
-              onClick={() => { void handleSave() }}
-              disabled={loading || saving || !accessToken || (!firstName.trim() && !lastName.trim())}
-              style={{
-                fontSize: 13, fontWeight: 500,
-                color: "#ffffff",
-                background: loading || saving || !accessToken || (!firstName.trim() && !lastName.trim()) ? "#a0aab8" : "#1d3557",
-                border: "none",
-                borderRadius: 24, padding: "10px 24px",
-                cursor: loading || saving || !accessToken || (!firstName.trim() && !lastName.trim()) ? "not-allowed" : "pointer",
-                transition: "background 0.15s",
-              }}
-              onMouseEnter={(e) => { if (!loading && !saving) e.currentTarget.style.background = "#16294a" }}
-              onMouseLeave={(e) => { if (!loading && !saving) e.currentTarget.style.background = "#1d3557" }}
-            >
-              {saving ? "Saving…" : "Save Changes"}
-            </button>
-          </div>
-        </div>
+            <div className="flex justify-end border-t border-border/50 pt-5">
+              <Button
+                onClick={() => {
+                  void handleSave()
+                }}
+                disabled={loading || saving || !accessToken || (!firstName.trim() && !lastName.trim())}
+                className="rounded-full bg-primary text-white hover:bg-primary/90"
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </section>
     </main>
   )
