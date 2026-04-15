@@ -32,6 +32,7 @@ export type AvailabilityRequestPayload = {
 }
 
 export type VenueInquiryPayload = {
+  userId: string
   venueId: string
   fullName: string
   email: string
@@ -122,16 +123,27 @@ export async function createAvailabilityRequest(payload: AvailabilityRequestPayl
 }
 
 export async function createVenueInquiry(payload: VenueInquiryPayload) {
-  const { error } = await supabaseServer.from("venue_inquiries").insert({
+  const metaParts = [
+    `Venue: ${payload.venueId}`,
+    `Event date: ${payload.eventDate}`,
+    payload.eventType ? `Event type: ${payload.eventType}` : null,
+    payload.guestCount ? `Guest count: ${payload.guestCount}` : null,
+    payload.contactNumber ? `Contact number: ${payload.contactNumber}` : null,
+    payload.email ? `Email: ${payload.email}` : null,
+    payload.fullName ? `Full name: ${payload.fullName}` : null,
+    "",
+    "Message:",
+    payload.message,
+  ]
+
+  const composedMessage = metaParts.filter(Boolean).join("\n")
+
+  const { error } = await supabaseServer.from("inquiries").insert({
+    id: crypto.randomUUID(),
+    user_id: payload.userId,
     venue_id: payload.venueId,
-    full_name: payload.fullName,
-    email: payload.email,
-    contact_number: payload.contactNumber ?? null,
-    event_date: payload.eventDate,
-    guest_count: payload.guestCount ?? null,
-    event_type: payload.eventType ?? null,
-    message: payload.message,
-    status: "pending",
+    message: composedMessage,
+    status: "Pending",
   })
 
   if (error) {
