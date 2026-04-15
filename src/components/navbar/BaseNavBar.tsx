@@ -121,21 +121,21 @@ export default function BaseNavBar({
           </div>
 
           {/* Middle nav */}
-          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3 border-t border-border/50 pt-3 lg:flex-1 lg:pt-0 lg:border-t-0">
+         <nav className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-2 border-t border-border/50 pt-3 lg:flex-1 lg:flex-nowrap lg:justify-center lg:gap-x-8 lg:border-t-0 lg:pt-0">
             {navItems.map(({ href, label, icon: Icon, isActive }) => (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "flex items-center gap-2 text-sm transition-colors",
-                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                <span className="font-serif">{label}</span>
-              </Link>
-            ))}
-          </nav>
+            <Link
+            key={href}
+            href={href}
+            className={cn(
+                "flex items-center gap-1.5 text-[12px] transition-colors sm:text-[13px] lg:text-sm",
+                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            )}
+            >
+            <Icon className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
+            <span className="font-serif leading-none">{label}</span>
+            </Link>
+        ))}
+        </nav>
 
           {/* Right user on desktop */}
           <div className="hidden lg:flex lg:flex-none lg:items-center">
@@ -148,7 +148,7 @@ export default function BaseNavBar({
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
                       {initials || "U"}
                     </div>
-                    <span className="text-sm font-medium">{firstName}</span>
+                    <span className="text-sm font-serif font-medium">{firstName}</span>
                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   </button>
                 </DropdownMenuTrigger>
