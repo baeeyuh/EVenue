@@ -47,6 +47,20 @@ type FilterSectionProps = {
 }
 
 export default function FilterSection({ initialFilters }: FilterSectionProps) {
+  const stateKey = [
+    initialFilters.search,
+    initialFilters.location,
+    initialFilters.minBudget,
+    initialFilters.maxBudget,
+    initialFilters.minPax,
+    initialFilters.maxPax,
+    initialFilters.amenities.join("|"),
+  ].join("::")
+
+  return <FilterSectionContent key={stateKey} initialFilters={initialFilters} />
+}
+
+function FilterSectionContent({ initialFilters }: FilterSectionProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -57,14 +71,6 @@ export default function FilterSection({ initialFilters }: FilterSectionProps) {
   const [location, setLocation] = useState(initialFilters.location)
   const [budgetRange, setBudgetRange] = useState<[number, number]>([initialFilters.minBudget, initialFilters.maxBudget])
   const [paxRange, setPaxRange] = useState<[number, number]>([initialFilters.minPax, initialFilters.maxPax])
-
-  useEffect(() => {
-    setSearch(initialFilters.search)
-    setSelectedAmenities(initialFilters.amenities)
-    setLocation(initialFilters.location)
-    setBudgetRange([initialFilters.minBudget, initialFilters.maxBudget])
-    setPaxRange([initialFilters.minPax, initialFilters.maxPax])
-  }, [initialFilters])
 
   const toggleAmenity = (a: string) =>
     setSelectedAmenities((prev) =>
@@ -122,7 +128,7 @@ export default function FilterSection({ initialFilters }: FilterSectionProps) {
                 className="h-10 w-full rounded-2xl border-border/60 bg-background justify-between font-normal text-sm px-3.5"
               >
                 <div className="flex items-center gap-2">
-                  <MapPin className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                  <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   <span className={cn(!selectedLabel && "text-muted-foreground")}>
                     {selectedLabel ?? "All locations"}
                   </span>
