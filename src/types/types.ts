@@ -13,6 +13,7 @@ export type Venue = {
 	id: string
 	organizationId: string
 	name: string
+	organizationName?: string
 	location: string
 	capacity: number
 	price: string

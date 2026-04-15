@@ -43,6 +43,16 @@ export type VenueInquiryPayload = {
   message: string
 }
 
+function organizationInitials(name: string): string {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()
+}
+
 export async function fetchVenues(filters: Partial<VenueFilters> = {}): Promise<Venue[]> {
   const resolved = { ...DEFAULT_VENUE_FILTERS, ...filters }
 
@@ -61,10 +71,36 @@ export async function fetchVenues(filters: Partial<VenueFilters> = {}): Promise<
     throw new Error("Failed to fetch venues")
   }
 
-  return ((data ?? []) as VenueRpcRow[]).map((venue) => ({
+  const venueRows = (data ?? []) as VenueRpcRow[]
+  const organizationIds = Array.from(
+    new Set(venueRows.map((venue) => venue.organization_id).filter((id): id is string => Boolean(id))),
+  )
+
+  const organizationNamesById = new Map<string, string>()
+
+  if (organizationIds.length > 0) {
+    const { data: organizationsData, error: organizationsError } = await supabaseServer
+      .from("organizations")
+      .select("id, name")
+      .in("id", organizationIds)
+
+    if (organizationsError) {
+      console.error(organizationsError)
+    } else {
+      ;((organizationsData ?? []) as Array<{ id: string; name: string | null }>).forEach((organization) => {
+        organizationNamesById.set(organization.id, organization.name ?? "")
+      })
+    }
+  }
+
+  return venueRows.map((venue) => {
+    const organizationName = venue.organization_id ? organizationNamesById.get(venue.organization_id) ?? "" : ""
+
+    return {
     id: venue.id,
     organizationId: venue.organization_id ?? "",
     name: venue.name,
+    organizationName: organizationName || undefined,
     location: venue.location ?? "",
     capacity: venue.capacity ?? 0,
     price: venue.price !== null ? `₱${Number(venue.price).toLocaleString()}` : "Price on request",
@@ -72,12 +108,13 @@ export async function fetchVenues(filters: Partial<VenueFilters> = {}): Promise<
     amenities: [],
     rating: Number(venue.rating ?? 0),
     reviewCount: venue.review_count ?? 0,
-    ownerName: "Venue Owner",
-    ownerInitials: "VO",
+    ownerName: organizationName || "Venue Owner",
+    ownerInitials: organizationName ? organizationInitials(organizationName) : "VO",
     description: venue.description ?? undefined,
     venueType: venue.venue_type ?? undefined,
     isAvailable: venue.is_available ?? true,
-  }))
+  }
+  })
 }
 
 export async function fetchFeaturedVenues(): Promise<Venue[]> {
