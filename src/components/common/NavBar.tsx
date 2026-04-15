@@ -107,8 +107,8 @@ export default function NavBar() {
                 className={cn(
                   "flex items-center gap-2 rounded-full px-4 py-2 text-[12px] whitespace-nowrap transition-all font-serif",
                   isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -130,8 +130,8 @@ export default function NavBar() {
                     className={cn(
                       "flex items-center gap-2 rounded-full px-4 py-2 text-[12px] whitespace-nowrap transition-all font-serif",
                       isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          ? "text-primary"
+                          : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     <Icon className="h-4 w-4" />
