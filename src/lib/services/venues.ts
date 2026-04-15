@@ -21,6 +21,27 @@ type VenueRpcRow = VenueDetailsRow & {
   created_at: string | null
 }
 
+export type AvailabilityRequestPayload = {
+  venueId: string
+  eventDate: string
+  startTime?: string
+  endTime?: string
+  guestCount?: number
+  eventType?: string
+  notes?: string
+}
+
+export type VenueInquiryPayload = {
+  venueId: string
+  fullName: string
+  email: string
+  contactNumber?: string
+  eventDate: string
+  guestCount?: number
+  eventType?: string
+  message: string
+}
+
 export async function fetchVenues(filters: Partial<VenueFilters> = {}): Promise<Venue[]> {
   const resolved = { ...DEFAULT_VENUE_FILTERS, ...filters }
 
@@ -78,4 +99,45 @@ export async function fetchVenuesByOrganizationId(id: string): Promise<VenueDeta
   }
 
   return (data as VenueDetailsRow[] | null) ?? []
+}
+
+export async function createAvailabilityRequest(payload: AvailabilityRequestPayload) {
+  const { error } = await supabaseServer.from("venue_availability_requests").insert({
+    venue_id: payload.venueId,
+    event_date: payload.eventDate,
+    start_time: payload.startTime ?? null,
+    end_time: payload.endTime ?? null,
+    guest_count: payload.guestCount ?? null,
+    event_type: payload.eventType ?? null,
+    notes: payload.notes ?? null,
+    status: "pending",
+  })
+
+  if (error) {
+    console.error(error)
+    throw new Error("Failed to submit availability request")
+  }
+
+  return { success: true }
+}
+
+export async function createVenueInquiry(payload: VenueInquiryPayload) {
+  const { error } = await supabaseServer.from("venue_inquiries").insert({
+    venue_id: payload.venueId,
+    full_name: payload.fullName,
+    email: payload.email,
+    contact_number: payload.contactNumber ?? null,
+    event_date: payload.eventDate,
+    guest_count: payload.guestCount ?? null,
+    event_type: payload.eventType ?? null,
+    message: payload.message,
+    status: "pending",
+  })
+
+  if (error) {
+    console.error(error)
+    throw new Error("Failed to send inquiry")
+  }
+
+  return { success: true }
 }
