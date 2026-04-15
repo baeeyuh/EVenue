@@ -28,11 +28,11 @@ export default function HeroSection() {
 
           <div className="flex flex-wrap gap-3">
             <Button asChild size="lg" className="rounded-full px-8">
-              <Link href="/venues">Explore Venues</Link>
+              <Link href="/explore?type=venues">Explore Venues</Link>
             </Button>
 
             <Button asChild size="lg" variant="outline" className="rounded-full px-8">
-              <Link href="/organizations">Browse Organizations</Link>
+              <Link href="/explore?type=organizations">Browse Organizations</Link>
             </Button>
           </div>
 

@@ -29,49 +29,56 @@ export default function LoginForm() {
     router.replace(pathname)
   }, [searchParams, router, pathname])
 
-  async function handleLogin() {
-    const now = Date.now()
-    if (now - lastSubmitRef.current < 1000) {
-      setError("Please wait a moment before trying again")
-      return
-    }
-
-    if (inFlightRef.current) return
-    inFlightRef.current = true
-    lastSubmitRef.current = now
-    setLoading(true)
-    setError(null)
-
-    if (!email) {
-      setLoading(false)
-      inFlightRef.current = false
-      setError("Email is required")
-      return
-    }
-    if (!isValidEmail(email)) {
-      setLoading(false)
-      inFlightRef.current = false
-      setError("Please enter a valid email address")
-      return
-    }
-    if (!password) {
-      setLoading(false)
-      inFlightRef.current = false
-      setError("Password is required")
-      return
-    }
-
-    try {
-      const { data, error } = await signIn({ email, password })
-      if (error) setError(error.message ?? "Sign-in failed")
-      else console.log("Signed in:", data)
-    } catch (err: any) {
-      setError(err?.message ?? "An unexpected error occurred")
-    } finally {
-      setLoading(false)
-      inFlightRef.current = false
-    }
+async function handleLogin() {
+  const now = Date.now()
+  if (now - lastSubmitRef.current < 1000) {
+    setError("Please wait a moment before trying again")
+    return
   }
+
+  if (inFlightRef.current) return
+  inFlightRef.current = true
+  lastSubmitRef.current = now
+  setLoading(true)
+  setError(null)
+
+  if (!email) {
+    setLoading(false)
+    inFlightRef.current = false
+    setError("Email is required")
+    return
+  }
+  if (!isValidEmail(email)) {
+    setLoading(false)
+    inFlightRef.current = false
+    setError("Please enter a valid email address")
+    return
+  }
+  if (!password) {
+    setLoading(false)
+    inFlightRef.current = false
+    setError("Password is required")
+    return
+  }
+
+  try {
+    const { error } = await signIn({ email, password })
+
+    if (error) {
+      setError(error.message ?? "Sign-in failed")
+      return
+    }
+
+    toast.success("Logged in successfully")
+    router.replace("/dashboard/customer")
+    router.refresh()
+  } catch (err: any) {
+    setError(err?.message ?? "An unexpected error occurred")
+  } finally {
+    setLoading(false)
+    inFlightRef.current = false
+  }
+}
 
   return (
     <div className="flex flex-col justify-center space-y-6 h-full">
