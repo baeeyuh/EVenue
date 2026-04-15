@@ -70,10 +70,10 @@ async function handleLogin() {
     }
 
     toast.success("Logged in successfully")
-    router.replace("/dashboard/customer")
+    router.replace("/dashboard/client")
     router.refresh()
-  } catch (err: any) {
-    setError(err?.message ?? "An unexpected error occurred")
+  } catch (err: unknown) {
+    setError(err instanceof Error ? err.message : "An unexpected error occurred")
   } finally {
     setLoading(false)
     inFlightRef.current = false

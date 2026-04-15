@@ -13,7 +13,7 @@ const savedItems = [
   },
 ]
 
-export default function CustomerSavedContent() {
+export default function ClientSavedContent() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <section className="border-b border-border/50 bg-muted/20">

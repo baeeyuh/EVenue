@@ -3,13 +3,13 @@ import FeaturedVenues from "@/components/common/FeaturedVenues"
 import FilterSection from "@/components/common/FilterSection"
 import HeroSection from "@/components/common/HeroSection"
 
-type CustomerHomeContentProps = {
+type ClientHomeContentProps = {
   filters: unknown
 }
 
-export default function CustomerHomeContent({
+export default function ClientHomeContent({
   filters,
-}: CustomerHomeContentProps) {
+}: ClientHomeContentProps) {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <HeroSection />

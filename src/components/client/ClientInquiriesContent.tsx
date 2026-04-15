@@ -16,7 +16,7 @@ const inquiries = [
   },
 ]
 
-export default function CustomerInquiriesContent() {
+export default function ClientInquiriesContent() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <section className="border-b border-border/50 bg-muted/20">

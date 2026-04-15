@@ -33,10 +33,10 @@ const publicTabs = [
   { href: "/explore", label: "Explore", icon: Compass },
 ]
 
-const customerTabs = [
-  { href: "/dashboard/customer/inquiries", label: "Inquiries", icon: MessageSquare },
-  { href: "/dashboard/customer/bookings", label: "Bookings", icon: CalendarCheck },
-  { href: "/dashboard/customer/saved", label: "Saved", icon: Heart },
+const clientTabs = [
+  { href: "/dashboard/client/inquiries", label: "Inquiries", icon: MessageSquare },
+  { href: "/dashboard/client/bookings", label: "Bookings", icon: CalendarCheck },
+  { href: "/dashboard/client/saved", label: "Saved", icon: Heart },
 ]
 
 export default function NavBar() {
@@ -72,9 +72,9 @@ export default function NavBar() {
   const lastName = user?.user_metadata?.last_name ?? ""
   const initials = `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase()
 
-  const homeHref = user ? "/dashboard/customer" : "/"
+  const homeHref = user ? "/dashboard/client" : "/"
 
-  const isHomeActive = pathname === "/" || pathname === "/dashboard/customer"
+  const isHomeActive = pathname === "/" || pathname === "/dashboard/client"
   const isExploreActive = pathname.startsWith("/explore")
 
   return (
@@ -120,7 +120,7 @@ export default function NavBar() {
           {user && (
             <>
               <div className="mx-1 h-5 w-px bg-border/60" />
-              {customerTabs.map(({ href, label, icon: Icon }) => {
+              {clientTabs.map(({ href, label, icon: Icon }) => {
                 const isActive = pathname === href || pathname.startsWith(`${href}/`)
 
                 return (
@@ -162,13 +162,13 @@ export default function NavBar() {
                 <p className="text-sm font-medium">
                   {firstName} {lastName}
                 </p>
-                <p className="text-xs capitalize text-muted-foreground">customer</p>
+                <p className="text-xs capitalize text-muted-foreground">client</p>
               </div>
 
               <DropdownMenuSeparator />
 
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/customer/profile" className="cursor-pointer">
+                <Link href="/dashboard/client/profile" className="cursor-pointer">
                   <User className="mr-2 h-4 w-4" />
                   Profile
                 </Link>

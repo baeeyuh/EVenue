@@ -1,15 +1,15 @@
-import CustomerHomeContent from "@/components/customer/CustomerHomeContent"
+import ClientHomeContent from "@/components/client/ClientHomeContent"
 import { venueFiltersFromSearchParams } from "@/lib/venue-filters"
 
-type CustomerDashboardPageProps = {
+type ClientDashboardPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-export default async function CustomerDashboardPage({
+export default async function ClientDashboardPage({
   searchParams,
-}: CustomerDashboardPageProps) {
+}: ClientDashboardPageProps) {
   const resolvedSearchParams = await searchParams
   const filters = venueFiltersFromSearchParams(resolvedSearchParams)
 
-  return <CustomerHomeContent filters={filters} />
+  return <ClientHomeContent filters={filters} />
 }

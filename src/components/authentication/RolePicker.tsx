@@ -1,10 +1,10 @@
 "use client"
 import { cn } from "@/lib/utils"
 
-export type Role = "customer" | "owner"
+export type Role = "client" | "owner"
 
 const roles = [
-  { value: "customer" as Role, icon: "🎉", label: "Customer", desc: "Looking for a venue to book" },
+  { value: "client" as Role, icon: "🎉", label: "Client", desc: "Looking for a venue to book" },
   { value: "owner" as Role, icon: "🏛️", label: "Venue Owner", desc: "I want to list my venue" },
 ]
 
