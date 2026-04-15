@@ -30,6 +30,7 @@ type SendInquiryModalProps = {
   venueLocation?: string
   ownerName?: string
   venueCapacity?: number
+  initialEventDate?: string
 }
 
 export default function SendInquiryModal({
@@ -40,11 +41,12 @@ export default function SendInquiryModal({
   venueLocation,
   ownerName,
   venueCapacity,
+  initialEventDate,
 }: SendInquiryModalProps) {
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [contactNumber, setContactNumber] = useState("")
-  const [eventDate, setEventDate] = useState("")
+  const [eventDate, setEventDate] = useState(initialEventDate ?? "")
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
   const [guestCount, setGuestCount] = useState("")
@@ -64,6 +66,12 @@ export default function SendInquiryModal({
     venueCapacity > 0 &&
     guestCountNumber !== null &&
     guestCountNumber > venueCapacity
+
+  useEffect(() => {
+    if (open) {
+      setEventDate(initialEventDate ?? "")
+    }
+  }, [initialEventDate, open])
 
   useEffect(() => {
     let ignore = false
@@ -194,7 +202,6 @@ export default function SendInquiryModal({
       <DialogContent className="max-w-2xl overflow-hidden rounded-[2rem] border-border/60 p-0">
         <div className="border-b border-border/60 bg-gradient-to-br from-primary/8 via-background to-background px-6 py-5">
           <DialogHeader className="space-y-2">
-
             <DialogTitle className="font-serif text-2xl font-light">
               Send inquiry
             </DialogTitle>

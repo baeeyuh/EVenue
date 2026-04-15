@@ -24,6 +24,7 @@ type CheckAvailabilityModalProps = {
   venueId: string
   venueName: string
   venueLocation?: string
+  onContinue?: (selectedDate: string) => void
 }
 
 function startOfMonth(date: Date) {
@@ -78,6 +79,7 @@ export default function CheckAvailabilityModal({
   venueId,
   venueName,
   venueLocation,
+  onContinue,
 }: CheckAvailabilityModalProps) {
   const [viewDate, setViewDate] = useState(() => startOfMonth(new Date()))
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -138,7 +140,6 @@ export default function CheckAvailabilityModal({
   }, [open, venueId, viewDate])
 
   const days = useMemo(() => buildCalendarDays(viewDate), [viewDate])
-
   const todayKey = formatDateKey(new Date())
 
   return (
@@ -146,10 +147,6 @@ export default function CheckAvailabilityModal({
       <DialogContent className="max-w-2xl overflow-hidden rounded-[2rem] border-border/60 p-0">
         <div className="border-b border-border/60 bg-gradient-to-br from-primary/8 via-background to-background px-6 py-5">
           <DialogHeader className="space-y-2">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
-              <CalendarDays className="h-3.5 w-3.5" />
-              Venue availability
-            </div>
 
             <DialogTitle className="font-serif text-2xl font-light">
               Check availability
@@ -217,8 +214,11 @@ export default function CheckAvailabilityModal({
                   className={cn(
                     "aspect-square rounded-2xl border text-sm transition-all",
                     isSelected && "border-primary bg-primary text-primary-foreground",
-                    !isSelected && isAvailable && "border-border/60 bg-background hover:border-primary/50 hover:bg-primary/5",
-                    isUnavailable && "cursor-not-allowed border-border/40 bg-muted/30 text-muted-foreground opacity-50"
+                    !isSelected &&
+                      isAvailable &&
+                      "border-border/60 bg-background hover:border-primary/50 hover:bg-primary/5",
+                    isUnavailable &&
+                      "cursor-not-allowed border-border/40 bg-muted/30 text-muted-foreground opacity-50"
                   )}
                 >
                   {day.getDate()}
@@ -234,12 +234,12 @@ export default function CheckAvailabilityModal({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-background border border-border/60" />
+              <span className="h-3 w-3 rounded-full border border-border/60 bg-background" />
               <span className="text-muted-foreground">Available</span>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-muted border border-border/40" />
+              <span className="h-3 w-3 rounded-full border border-border/40 bg-muted" />
               <span className="text-muted-foreground">Unavailable</span>
             </div>
           </div>
@@ -266,8 +266,13 @@ export default function CheckAvailabilityModal({
             <Button
               disabled={!selectedDate}
               className="h-11 rounded-full bg-primary text-white hover:bg-primary/90"
+              onClick={() => {
+                if (selectedDate) {
+                  onContinue?.(selectedDate)
+                }
+              }}
             >
-              Continue with {selectedDate ? "Inquiry" : "Selection"}
+              Continue with Inquiry
             </Button>
           </div>
         </div>
