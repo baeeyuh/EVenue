@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-export default function CustomerProfileContent() {
+export default function ClientProfileContent() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <section className="border-b border-border/50 bg-muted/20">

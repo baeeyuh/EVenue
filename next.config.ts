@@ -25,6 +25,16 @@ const nextConfig: NextConfig = {
         destination: "/organizations/:id",
         permanent: true,
       },
+      {
+        source: "/dashboard/customer",
+        destination: "/dashboard/client",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/customer/:path*",
+        destination: "/dashboard/client/:path*",
+        permanent: true,
+      },
     ]
   },
 }
