@@ -100,8 +100,10 @@ export default function CheckAvailabilityModal({
         const month = viewDate.getMonth() + 1
         const year = viewDate.getFullYear()
 
+        const encodedVenueId = encodeURIComponent(venueId)
+
         const res = await fetch(
-          `/api/venues/${venueId}/availability?year=${year}&month=${month}`,
+          `/api/venues/${encodedVenueId}/availability?year=${year}&month=${month}`,
           {
             method: "GET",
             cache: "no-store",

@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server"
 import { supabaseServer } from "@/lib/supabaseServer"
 
+function normalizeDateKey(value: string | null | undefined) {
+  if (!value) return null
+  if (value.length >= 10) {
+    return value.slice(0, 10)
+  }
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return null
+  return parsed.toISOString().slice(0, 10)
+}
+
 export async function GET(
   request: Request,
   context: { params: Promise<{ venueId: string }> }
@@ -14,19 +25,47 @@ export async function GET(
       return NextResponse.json({ message: "Date is required" }, { status: 400 })
     }
 
-    const { data, error } = await supabaseServer
-      .from("venue_availability")
-      .select("is_available")
-      .eq("venue_id", venueId)
-      .eq("date", date)
+    const normalizedDate = normalizeDateKey(date)
+    if (!normalizedDate) {
+      return NextResponse.json(
+        { message: "Invalid date format" },
+        { status: 400 }
+      )
+    }
+
+    const { data: venueData, error: venueError } = await supabaseServer
+      .from("venues")
+      .select("id, is_available")
+      .eq("id", venueId)
       .maybeSingle()
+
+    if (venueError) {
+      throw new Error(venueError.message)
+    }
+
+    if (!venueData) {
+      return NextResponse.json({ message: "Venue not found" }, { status: 404 })
+    }
+
+    if (venueData.is_available === false) {
+      return NextResponse.json({ isAvailable: false })
+    }
+
+    const { data, error } = await supabaseServer
+      .from("bookings")
+      .select("id")
+      .eq("venue_id", venueId)
+      .in("status", ["pending", "confirmed", "Pending", "Confirmed"])
+      .lte("start_date", `${normalizedDate}T23:59:59`)
+      .or(`end_date.gte.${normalizedDate},end_date.is.null`)
+      .limit(1)
 
     if (error) {
       throw new Error(error.message)
     }
 
     return NextResponse.json({
-      isAvailable: data?.is_available ?? false,
+      isAvailable: (data?.length ?? 0) === 0,
     })
   } catch (error: any) {
     return NextResponse.json(

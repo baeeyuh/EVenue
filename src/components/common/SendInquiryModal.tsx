@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { supabaseClient } from "@/lib/supabaseClient"
 
 type SendInquiryModalProps = {
   open: boolean
@@ -86,11 +87,22 @@ export default function SendInquiryModal({
       setError(null)
 
       try {
+        const {
+          data: { session },
+        } = await supabaseClient.auth.getSession()
+        const accessToken = session?.access_token
+        const encodedVenueId = encodeURIComponent(venueId)
+
         const res = await fetch(
-          `/api/venues/${venueId}/availability/check?date=${encodeURIComponent(eventDate)}`,
+          `/api/venues/${encodedVenueId}/availability/check?date=${encodeURIComponent(eventDate)}`,
           {
             method: "GET",
             cache: "no-store",
+            headers: accessToken
+              ? {
+                  Authorization: `Bearer ${accessToken}`,
+                }
+              : undefined,
           }
         )
 
@@ -155,14 +167,27 @@ export default function SendInquiryModal({
         throw new Error(`Guest count exceeds the venue capacity of ${venueCapacity}`)
       }
 
-      const res = await fetch(`/api/venues/${venueId}/inquiries`, {
+      const {
+        data: { session },
+      } = await supabaseClient.auth.getSession()
+
+      const accessToken = session?.access_token
+      if (!accessToken) {
+        throw new Error("Please log in to send an inquiry")
+      }
+
+      const encodedVenueId = encodeURIComponent(venueId)
+
+      const res = await fetch(`/api/venues/${encodedVenueId}/inquiries`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           fullName,
           email,
+          venueName,
           contactNumber: contactNumber || undefined,
           eventDate,
           startTime: startTime || undefined,
