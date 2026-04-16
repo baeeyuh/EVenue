@@ -20,21 +20,28 @@ export async function GET(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const { userId, client } = await getAuthenticatedUserId(request)
-    const body = await request.json()
-    const firstName = typeof body.firstName === "string" ? body.firstName : ""
-    const lastName = typeof body.lastName === "string" ? body.lastName : ""
 
     if (!userId || !client) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
+    const body = await request.json()
+    const firstName = typeof body.firstName === "string" ? body.firstName : ""
+    const lastName = typeof body.lastName === "string" ? body.lastName : ""
+    const contactNumber =
+      typeof body.contactNumber === "string" ? body.contactNumber : ""
+
     if (!firstName.trim() && !lastName.trim()) {
-      return NextResponse.json({ message: "At least one name field is required" }, { status: 400 })
+      return NextResponse.json(
+        { message: "At least one name field is required" },
+        { status: 400 }
+      )
     }
 
     const profile = await updateClientProfile(client, userId, {
       firstName,
       lastName,
+      contactNumber,
     })
 
     return NextResponse.json(profile)

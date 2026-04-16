@@ -12,6 +12,7 @@ export type ClientProfileRow = {
 export type ClientProfileUpdateInput = {
   firstName: string
   lastName: string
+  contactNumber: string
 }
 
 export async function fetchClientProfile(client: SupabaseClient, userId: string): Promise<ClientProfileRow | null> {

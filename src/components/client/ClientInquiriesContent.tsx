@@ -1,32 +1,50 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { ArrowUpRight, CalendarDays, MessageSquare, Search } from "lucide-react"
+
+import { supabaseClient } from "@/lib/supabaseClient"
+import InquiryDetailsModal, {
+  type InquiryItem,
+} from "@/components/client/InquiryDetailsModal"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { supabaseClient } from "@/lib/supabaseClient"
-
-type InquiryItem = {
-  id: string
-  status: string | null
-  message: string
-  created_at: string | null
-  venue_name: string
-}
+import { Input } from "@/components/ui/input"
 
 function formatInquiryDate(value: string | null) {
   if (!value) return "Unknown date"
 
   return new Intl.DateTimeFormat("en-US", {
     month: "long",
-    day: "2-digit",
+    day: "numeric",
     year: "numeric",
   }).format(new Date(value))
 }
 
+function getStatusVariant(status: string | null) {
+  const s = (status ?? "").toLowerCase()
+
+  if (s === "responded") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700"
+  }
+
+  if (s === "closed") {
+    return "border-slate-200 bg-slate-100 text-slate-700"
+  }
+
+  return "border-amber-200 bg-amber-50 text-amber-700"
+}
+
 export default function ClientInquiriesContent() {
   const [inquiries, setInquiries] = useState<InquiryItem[]>([])
+  const [filteredInquiries, setFilteredInquiries] = useState<InquiryItem[]>([])
+  const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const [selectedInquiry, setSelectedInquiry] = useState<InquiryItem | null>(null)
+  const [detailsLoading, setDetailsLoading] = useState(false)
+  const [detailsError, setDetailsError] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -45,6 +63,7 @@ export default function ClientInquiriesContent() {
       if (!user || !accessToken) {
         if (!active) return
         setInquiries([])
+        setFilteredInquiries([])
         setLoading(false)
         setError("Please log in to view your inquiries")
         return
@@ -53,9 +72,7 @@ export default function ClientInquiriesContent() {
       try {
         const response = await fetch("/api/client/inquiries", {
           cache: "no-store",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+          headers: { Authorization: `Bearer ${accessToken}` },
         })
 
         if (!response.ok) {
@@ -63,8 +80,10 @@ export default function ClientInquiriesContent() {
         }
 
         const data = (await response.json()) as InquiryItem[]
+
         if (!active) return
         setInquiries(data)
+        setFilteredInquiries(data)
       } catch (fetchError: unknown) {
         if (!active) return
         setError(fetchError instanceof Error ? fetchError.message : "Failed to load inquiries")
@@ -81,60 +100,176 @@ export default function ClientInquiriesContent() {
     }
   }, [])
 
+  useEffect(() => {
+    const query = search.trim().toLowerCase()
+
+    if (!query) {
+      setFilteredInquiries(inquiries)
+      return
+    }
+
+    setFilteredInquiries(
+      inquiries.filter((inquiry) => {
+        return (
+          inquiry.venue_name.toLowerCase().includes(query) ||
+          inquiry.message.toLowerCase().includes(query) ||
+          inquiry.id.toLowerCase().includes(query) ||
+          (inquiry.status ?? "").toLowerCase().includes(query)
+        )
+      })
+    )
+  }, [search, inquiries])
+
+  async function handleViewInquiry(inquiryId: string) {
+    setDetailsLoading(true)
+    setDetailsError(null)
+    setSelectedInquiry(null)
+
+    try {
+      const {
+        data: { session },
+      } = await supabaseClient.auth.getSession()
+
+      const accessToken = session?.access_token
+
+      if (!accessToken) {
+        throw new Error("Please log in to view inquiry details")
+      }
+
+      const response = await fetch(`/api/client/inquiries/${inquiryId}`, {
+        cache: "no-store",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to load inquiry details")
+      }
+
+      const data = (await response.json()) as InquiryItem
+      setSelectedInquiry(data)
+    } catch (err: unknown) {
+      setDetailsError(err instanceof Error ? err.message : "Failed to load inquiry details")
+    } finally {
+      setDetailsLoading(false)
+    }
+  }
+
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <section className="border-b border-border/50 bg-muted/20">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <p className="text-sm font-medium text-primary">My Inquiries</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Inquiries</h1>
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-            Track venue questions, availability requests, and communication status.
-          </p>
-        </div>
-      </section>
+    <>
+      <main className="min-h-screen bg-[#fafaf8] text-foreground">
+        <section className="border-b border-border/60 bg-background">
+          <div className="mx-auto max-w-5xl px-6 py-12">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+              My Inquiries
+            </p>
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {loading && (
-          <p className="text-sm text-muted-foreground">Loading inquiries...</p>
-        )}
+            <h1 className="font-serif text-4xl font-light tracking-tight text-foreground">
+              Inquiries
+            </h1>
 
-        {error && !loading && (
-          <p className="text-sm text-destructive">{error}</p>
-        )}
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
+              Track venue questions, availability requests, and communication status.
+            </p>
+          </div>
+        </section>
 
-        {!loading && !error && inquiries.length === 0 && (
-          <p className="text-sm text-muted-foreground">You have no inquiries yet.</p>
-        )}
+        <section className="mx-auto max-w-5xl px-6 py-10">
+          <div className="mb-6 max-w-md">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search inquiries..."
+                className="h-11 rounded-full border-border/60 bg-background pl-10"
+              />
+            </div>
+          </div>
 
-        <div className="space-y-4">
-          {inquiries.map((inquiry) => (
-            <div
-              key={inquiry.id}
-              className="rounded-3xl border border-border/60 bg-card p-5 shadow-sm"
-            >
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    {inquiry.id.toUpperCase()}
-                  </p>
-                  <h2 className="mt-1 text-xl font-semibold">{inquiry.venue_name}</h2>
-                  <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{inquiry.message}</p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Inquiry Date: {formatInquiryDate(inquiry.created_at)}
+          {loading && (
+            <p className="text-sm text-muted-foreground">Loading inquiries…</p>
+          )}
+
+          {error && !loading && (
+            <p className="text-sm text-destructive">{error}</p>
+          )}
+
+          {!loading && !error && filteredInquiries.length === 0 && (
+            <div className="rounded-[2rem] border border-border/60 bg-card/70 px-6 py-16 text-center">
+              <p className="text-base text-muted-foreground">No inquiries yet.</p>
+              <p className="mt-2 text-sm text-muted-foreground/80">
+                Inquiries you send to venues will appear here.
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-4">
+            {filteredInquiries.map((inquiry) => (
+              <div
+                key={inquiry.id}
+                className="rounded-2xl border border-border/60 bg-background p-6 shadow-sm transition-shadow hover:shadow-md"
+              >
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      {inquiry.id.slice(0, 8).toUpperCase()}
+                    </p>
+
+                    <h2 className="font-serif text-2xl font-light text-foreground">
+                      {inquiry.venue_name}
+                    </h2>
+                  </div>
+
+                  <Badge
+                    className={`rounded-full border px-3 py-1 text-xs font-medium ${getStatusVariant(
+                      inquiry.status
+                    )}`}
+                  >
+                    {inquiry.status ?? "Pending"}
+                  </Badge>
+                </div>
+
+                <div className="mb-4 border-t border-border/50 pt-4" />
+
+                <div className="mb-5 flex gap-3">
+                  <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <p className="line-clamp-2 whitespace-pre-line text-sm leading-7 text-muted-foreground">
+                    {inquiry.message}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <Badge variant="secondary">{inquiry.status ?? "Pending"}</Badge>
-                  <Button variant="outline" className="rounded-full">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <CalendarDays className="h-4 w-4" />
+                    <span>Sent {formatInquiryDate(inquiry.created_at)}</span>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void handleViewInquiry(inquiry.id)}
+                    className="rounded-full border-border/60 bg-background hover:bg-muted"
+                  >
                     View Inquiry
+                    <ArrowUpRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
-    </main>
+            ))}
+          </div>
+        </section>
+      </main>
+
+      <InquiryDetailsModal
+        inquiry={selectedInquiry}
+        loading={detailsLoading}
+        error={detailsError}
+        open={Boolean(selectedInquiry || detailsLoading || detailsError)}
+        onClose={() => {
+          setSelectedInquiry(null)
+          setDetailsError(null)
+        }}
+      />
+    </>
   )
 }

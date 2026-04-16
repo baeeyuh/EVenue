@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { supabaseClient } from "@/lib/supabaseClient"
+import { MapPin, Building2, ArrowUpRight, X } from "lucide-react"
 
 type SavedItem = {
   id: string
@@ -31,10 +31,7 @@ export default function ClientSavedContent() {
       setLoading(true)
       setError(null)
 
-      const {
-        data: { session },
-      } = await supabaseClient.auth.getSession()
-
+      const { data: { session } } = await supabaseClient.auth.getSession()
       const user = session?.user
       const token = session?.access_token
 
@@ -52,15 +49,9 @@ export default function ClientSavedContent() {
       try {
         const response = await fetch("/api/client/saved", {
           cache: "no-store",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         })
-
-        if (!response.ok) {
-          throw new Error("Failed to load saved items")
-        }
-
+        if (!response.ok) throw new Error("Failed to load saved items")
         const data = (await response.json()) as SavedItem[]
         if (!active) return
         setSavedItems(data)
@@ -74,32 +65,18 @@ export default function ClientSavedContent() {
     }
 
     void loadSavedItems()
-
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [])
 
   async function handleRemove(savedItemId: string) {
     if (!accessToken) return
-
     setRemovingId(savedItemId)
-
     try {
       const response = await fetch(
         `/api/client/saved?savedItemId=${encodeURIComponent(savedItemId)}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+        { method: "DELETE", headers: { Authorization: `Bearer ${accessToken}` } }
       )
-
-      if (!response.ok) {
-        throw new Error("Failed to remove saved item")
-      }
-
+      if (!response.ok) throw new Error("Failed to remove saved item")
       setSavedItems((current) => current.filter((item) => item.id !== savedItemId))
     } catch (removeError: unknown) {
       setError(removeError instanceof Error ? removeError.message : "Failed to remove saved item")
@@ -109,58 +86,116 @@ export default function ClientSavedContent() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <section className="border-b border-border/50 bg-muted/20">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <p className="text-sm font-medium text-primary">Saved</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Saved Items</h1>
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+    <main style={{ minHeight: "100vh", background: "#fafaf8", color: "#1a1a1a", fontFamily: "var(--font-sans, sans-serif)" }}>
+
+      {/* Page Header */}
+      <section style={{ borderBottom: "1px solid #e8e6e0", background: "#ffffff" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 24px 40px" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1d3557", marginBottom: 10 }}>
+            Saved
+          </p>
+          <h1 style={{ fontSize: 36, fontWeight: 400, letterSpacing: "-0.02em", color: "#0f1117", margin: "0 0 12px", fontFamily: "Georgia, 'Times New Roman', serif" }}>
+            Saved Items
+          </h1>
+          <p style={{ fontSize: 14, color: "#6b6b6b", margin: 0, maxWidth: 480, lineHeight: 1.65 }}>
             Keep track of venues and organizations you want to revisit later.
           </p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Content */}
+      <section style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
+
         {loading && (
-          <p className="text-sm text-muted-foreground">Loading saved items...</p>
+          <p style={{ fontSize: 14, color: "#9a9a9a" }}>Loading saved items…</p>
         )}
-
         {error && !loading && (
-          <p className="text-sm text-destructive">{error}</p>
+          <p style={{ fontSize: 14, color: "#c0392b" }}>{error}</p>
         )}
-
         {!loading && !error && savedItems.length === 0 && (
-          <p className="text-sm text-muted-foreground">You have no saved items yet.</p>
+          <div style={{ textAlign: "center", padding: "80px 0" }}>
+            <p style={{ fontSize: 15, color: "#9a9a9a" }}>Nothing saved yet.</p>
+            <p style={{ fontSize: 13, color: "#b8b8b8", marginTop: 6 }}>Venues and organizations you save will appear here.</p>
+          </div>
         )}
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: 16 }}>
           {savedItems.map((item) => (
             <div
               key={item.id}
-              className="rounded-3xl border border-border/60 bg-card p-5 shadow-sm"
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e8e6e0",
+                borderRadius: 16,
+                padding: "24px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 0,
+                transition: "box-shadow 0.2s ease",
+                position: "relative",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.07)")}
+              onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
             >
-              <p className="text-xs font-medium uppercase tracking-wide text-primary">
-                {getSavedTypeLabel(item.item_type)}
-              </p>
-              <h2 className="mt-2 text-xl font-semibold">{item.name}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">{item.location}</p>
+              {/* Remove button */}
+              <button
+                onClick={() => { void handleRemove(item.id) }}
+                disabled={removingId === item.id}
+                style={{
+                  position: "absolute", top: 16, right: 16,
+                  width: 28, height: 28, borderRadius: "50%",
+                  border: "1px solid #e8e6e0", background: "transparent",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", color: "#9a9a9a",
+                  transition: "background 0.15s, color 0.15s",
+                  opacity: removingId === item.id ? 0.5 : 1,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "#fdf0f0"; e.currentTarget.style.color = "#c0392b" }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#9a9a9a" }}
+                title="Remove"
+              >
+                <X size={13} />
+              </button>
 
-              <div className="mt-5 flex gap-3">
-                <Button variant="outline" className="rounded-full" asChild>
-                  <Link href={item.item_type === "organization" ? `/organizations/${item.item_id}` : "/dashboard/client"}>
-                    View
-                  </Link>
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="rounded-full"
-                  onClick={() => {
-                    void handleRemove(item.id)
+              {/* Type badge */}
+              <div style={{ marginBottom: 14 }}>
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  fontSize: 11, fontWeight: 600, letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: "#1d3557", background: "#eef2f8",
+                  padding: "4px 10px", borderRadius: 20,
+                }}>
+                  <Building2 size={11} />
+                  {getSavedTypeLabel(item.item_type)}
+                </span>
+              </div>
+
+              <h2 style={{ fontSize: 18, fontWeight: 500, color: "#0f1117", margin: "0 0 8px", fontFamily: "Georgia, 'Times New Roman', serif", paddingRight: 20 }}>
+                {item.name}
+              </h2>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}>
+                <MapPin size={12} color="#9a9a9a" />
+                <p style={{ fontSize: 13, color: "#9a9a9a", margin: 0 }}>{item.location}</p>
+              </div>
+
+              <div style={{ marginTop: "auto", borderTop: "1px solid #f0eee8", paddingTop: 16 }}>
+                <Link
+                  href={item.item_type === "organization" ? `/organizations/${item.item_id}` : "/dashboard/client"}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    fontSize: 13, fontWeight: 500, color: "#1d3557",
+                    textDecoration: "none",
+                    background: "transparent", border: "1px solid #c8cdd8",
+                    borderRadius: 24, padding: "8px 18px",
+                    transition: "background 0.15s, border-color 0.15s",
                   }}
-                  disabled={removingId === item.id}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#f0f3f8"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#1d3557" }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#c8cdd8" }}
                 >
-                  {removingId === item.id ? "Removing..." : "Remove"}
-                </Button>
+                  View <ArrowUpRight size={13} />
+                </Link>
               </div>
             </div>
           ))}
