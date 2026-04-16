@@ -120,38 +120,10 @@ export default function ClientInquiriesContent() {
     )
   }, [search, inquiries])
 
-  async function handleViewInquiry(inquiryId: string) {
-    setDetailsLoading(true)
+  function handleViewInquiry(inquiry: InquiryItem) {
     setDetailsError(null)
-    setSelectedInquiry(null)
-
-    try {
-      const {
-        data: { session },
-      } = await supabaseClient.auth.getSession()
-
-      const accessToken = session?.access_token
-
-      if (!accessToken) {
-        throw new Error("Please log in to view inquiry details")
-      }
-
-      const response = await fetch(`/api/client/inquiries/${inquiryId}`, {
-        cache: "no-store",
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to load inquiry details")
-      }
-
-      const data = (await response.json()) as InquiryItem
-      setSelectedInquiry(data)
-    } catch (err: unknown) {
-      setDetailsError(err instanceof Error ? err.message : "Failed to load inquiry details")
-    } finally {
-      setDetailsLoading(false)
-    }
+    setDetailsLoading(false)
+    setSelectedInquiry(inquiry)
   }
 
   return (
@@ -247,7 +219,7 @@ export default function ClientInquiriesContent() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => void handleViewInquiry(inquiry.id)}
+                    onClick={() => handleViewInquiry(inquiry)}
                     className="rounded-full border-border/60 bg-background hover:bg-muted"
                   >
                     View Inquiry
