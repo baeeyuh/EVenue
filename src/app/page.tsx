@@ -16,7 +16,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     <main className="min-h-screen bg-background text-foreground">
       <HeroSection />
       <FilterSection initialFilters={filters} />
-      <FeaturedVenues filters={filters} />
+      <FeaturedVenues filters={filters as never} limit={6} />
       <FeaturedOrganizations />
     </main>
   )
