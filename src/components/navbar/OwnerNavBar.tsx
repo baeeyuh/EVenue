@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import {
   Home,
-  LayoutDashboard,
+  Compass,
   Building2,
   MessageSquare,
   CalendarCheck,
@@ -39,7 +39,7 @@ export default function OwnerNavBar() {
 
   const homeHref = user ? "/dashboard/owner" : "/"
 
-  const navItems: NavItem[] = [
+  const authenticatedNavItems: NavItem[] = [
     {
       href: homeHref,
       label: "Home",
@@ -65,6 +65,23 @@ export default function OwnerNavBar() {
       isActive: pathname.startsWith("/dashboard/owner/bookings"),
     },
   ]
+
+  const publicNavItems: NavItem[] = [
+    {
+      href: "/",
+      label: "Home",
+      icon: Home,
+      isActive: pathname === "/",
+    },
+    {
+      href: "/explore",
+      label: "Explore",
+      icon: Compass,
+      isActive: pathname.startsWith("/explore"),
+    },
+  ]
+
+  const navItems = user ? authenticatedNavItems : publicNavItems
 
   return (
     <BaseNavBar
