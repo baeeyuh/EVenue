@@ -47,12 +47,6 @@ export default function OwnerNavBar() {
       isActive: pathname === "/" || pathname === "/dashboard/owner",
     },
     {
-      href: "/dashboard/owner",
-      label: "Dashboard",
-      icon: LayoutDashboard,
-      isActive: pathname === "/dashboard/owner",
-    },
-    {
       href: "/dashboard/owner/venues",
       label: "Venues",
       icon: Building2,
