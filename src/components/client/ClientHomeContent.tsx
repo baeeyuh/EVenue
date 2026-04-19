@@ -14,7 +14,7 @@ export default function ClientHomeContent({
     <main className="min-h-screen bg-background text-foreground">
       <HeroSection />
       <FilterSection initialFilters={filters as never} />
-      <FeaturedVenues filters={filters as never} />
+      <FeaturedVenues filters={filters as never} limit={6} />
       <FeaturedOrganizations />
     </main>
   )
