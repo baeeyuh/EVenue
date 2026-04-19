@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { getOwnerOrgIds } from "@/lib/services/owner/organizations"
 
 export type OwnerBookingRow = {
   id: string
@@ -16,12 +17,8 @@ export type OwnerBookingRow = {
 type BookingBaseRow = {
   id: string
   venue_id: string | null
-  client_id: string | null
-  event_type: string | null
-  event_date: string | null
-  guest_count: number | null
+  start_date: string | null
   status: string | null
-  price: number | null
   created_at: string | null
 }
 
@@ -29,10 +26,14 @@ export async function fetchOwnerBookings(
   client: SupabaseClient,
   ownerId: string
 ): Promise<OwnerBookingRow[]> {
+  const orgIds = await getOwnerOrgIds(client, ownerId)
+
+  if (orgIds.length === 0) return []
+
   const { data: venuesData, error: venuesError } = await client
     .from("venues")
     .select("id, name")
-    .eq("owner_id", ownerId)
+    .in("organization_id", orgIds)
 
   if (venuesError) {
     console.error(venuesError)
@@ -49,11 +50,9 @@ export async function fetchOwnerBookings(
 
   const { data, error } = await client
     .from("bookings")
-    .select(
-      "id, venue_id, client_id, event_type, event_date, guest_count, status, price, created_at"
-    )
+    .select("id, venue_id, start_date, status, created_at")
     .in("venue_id", venueIds)
-    .order("event_date", { ascending: true })
+    .order("start_date", { ascending: true })
 
   if (error) {
     console.error(error)
@@ -63,7 +62,15 @@ export async function fetchOwnerBookings(
   const bookings = (data as BookingBaseRow[] | null) ?? []
 
   return bookings.map((booking) => ({
-    ...booking,
+    id: booking.id,
+    venue_id: booking.venue_id,
+    client_id: null,
+    event_type: null,
+    event_date: booking.start_date,
+    guest_count: null,
+    status: booking.status,
+    price: null,
+    created_at: booking.created_at,
     venue_name: booking.venue_id
       ? venueNameMap.get(booking.venue_id) ?? "Unknown venue"
       : "Unknown venue",

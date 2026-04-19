@@ -16,11 +16,14 @@ type Summary = {
 export default function OwnerDashboardContent() {
   const [summary, setSummary] = useState<Summary | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
 
     async function loadDashboard() {
+      setError(null)
+
       const {
         data: { session },
       } = await supabaseClient.auth.getSession()
@@ -40,11 +43,21 @@ export default function OwnerDashboardContent() {
           },
         })
 
-        if (!response.ok) throw new Error("Failed to fetch owner dashboard")
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as
+            | { message?: string }
+            | null
+          throw new Error(payload?.message || "Failed to fetch owner dashboard")
+        }
 
         const data = (await response.json()) as Summary
         if (!active) return
         setSummary(data)
+      } catch (fetchError: unknown) {
+        if (!active) return
+        setError(
+          fetchError instanceof Error ? fetchError.message : "Failed to fetch owner dashboard"
+        )
       } finally {
         if (!active) return
         setLoading(false)
@@ -102,6 +115,8 @@ export default function OwnerDashboardContent() {
       <section className="mx-auto max-w-6xl px-6 py-10">
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+        ) : error ? (
+          <p className="text-sm text-destructive">{error}</p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {stats.map((stat) => {

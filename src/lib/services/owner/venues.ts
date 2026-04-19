@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { getOwnerOrgIds } from "@/lib/services/owner/organizations"
 
 export type OwnerVenueRow = {
   id: string
@@ -14,10 +15,14 @@ export async function fetchOwnerVenues(
   client: SupabaseClient,
   ownerId: string
 ): Promise<OwnerVenueRow[]> {
+  const orgIds = await getOwnerOrgIds(client, ownerId)
+
+  if (orgIds.length === 0) return []
+
   const { data, error } = await client
     .from("venues")
     .select("id, name, location, capacity, is_available, venue_type, image")
-    .eq("owner_id", ownerId)
+    .in("organization_id", orgIds)
     .order("name", { ascending: true })
 
   if (error) {
