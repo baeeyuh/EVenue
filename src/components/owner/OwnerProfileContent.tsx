@@ -1,0 +1,227 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { Mail, Phone, ShieldCheck, User2 } from "lucide-react"
+
+import { supabaseClient } from "@/lib/supabaseClient"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+
+type OwnerProfile = {
+  id: string
+  first_name: string | null
+  last_name: string | null
+  email: string | null
+  contact_number: string | null
+  role: string | null
+}
+
+function getInitials(first: string, last: string) {
+  return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase() || "?"
+}
+
+function formatRole(role: string | null) {
+  if (!role) return "Owner"
+  if (role === "buyer") return "Client"
+  return role.charAt(0).toUpperCase() + role.slice(1)
+}
+
+export default function OwnerProfileContent() {
+  const [profile, setProfile] = useState<OwnerProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+
+    async function loadProfile() {
+      setLoading(true)
+      setError(null)
+
+      const {
+        data: { session },
+      } = await supabaseClient.auth.getSession()
+
+      const accessToken = session?.access_token
+
+      if (!accessToken) {
+        if (!active) return
+        setLoading(false)
+        setError("Please log in to view your profile")
+        return
+      }
+
+      try {
+        const response = await fetch("/api/owner/profile", {
+          cache: "no-store",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data?.message || "Failed to fetch owner profile")
+        }
+
+        if (!active) return
+        setProfile(data as OwnerProfile | null)
+      } catch (fetchError: unknown) {
+        if (!active) return
+        setError(fetchError instanceof Error ? fetchError.message : "Failed to fetch owner profile")
+      } finally {
+        if (!active) return
+        setLoading(false)
+      }
+    }
+
+    void loadProfile()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  return (
+    <main className="min-h-screen bg-[#fafaf8] text-foreground">
+      <section className="border-b border-border/60 bg-background">
+        <div className="mx-auto max-w-3xl px-6 py-12">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+            Account
+          </p>
+          <h1 className="font-serif text-4xl font-light tracking-tight">Owner Profile</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
+            Manage your owner account and contact details.
+          </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-3xl space-y-4 px-6 py-10">
+        {loading && <p className="text-sm text-muted-foreground">Loading profile...</p>}
+
+        {error && !loading && (
+          <Card className="border-destructive/20 bg-destructive/5">
+            <CardContent className="p-4">
+              <p className="text-sm text-destructive">{error}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {!loading && !error && !profile && (
+          <Card className="border-border/60">
+            <CardContent className="p-6">
+              <p className="text-sm text-muted-foreground">
+                No owner profile record was found for this account.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {!loading && !error && profile && (
+          <>
+            <Card className="border-border/60">
+              <CardContent className="flex items-center gap-4 p-6">
+                <Avatar className="h-16 w-16 border border-border/60">
+                  <AvatarFallback className="bg-primary font-serif text-lg text-primary-foreground">
+                    {getInitials(profile.first_name ?? "", profile.last_name ?? "")}
+                  </AvatarFallback>
+                </Avatar>
+
+                <div className="min-w-0">
+                  <p className="font-serif text-xl font-light">
+                    {`${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() || "Owner"}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">{profile.email ?? ""}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/60">
+              <CardHeader>
+                <CardTitle className="text-base">Account Information</CardTitle>
+                <CardDescription>Owner account details.</CardDescription>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                      First Name
+                    </Label>
+                    <div className="relative">
+                      <User2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={profile.first_name ?? ""}
+                        readOnly
+                        className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                      Last Name
+                    </Label>
+                    <div className="relative">
+                      <User2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={profile.last_name ?? ""}
+                        readOnly
+                        className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Email Address
+                  </Label>
+                  <div className="relative">
+                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={profile.email ?? ""}
+                      readOnly
+                      className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Contact Number
+                  </Label>
+                  <div className="relative">
+                    <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={profile.contact_number ?? ""}
+                      readOnly
+                      className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Role
+                  </Label>
+                  <div className="relative">
+                    <ShieldCheck className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={formatRole(profile.role)}
+                      readOnly
+                      className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </section>
+    </main>
+  )
+}

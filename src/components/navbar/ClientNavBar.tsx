@@ -39,7 +39,7 @@ export default function ClientNavBar() {
 
   const homeHref = user ? "/dashboard/client" : "/"
 
-  const navItems: NavItem[] = [
+  const authenticatedNavItems: NavItem[] = [
     {
       href: homeHref,
       label: "Home",
@@ -71,6 +71,23 @@ export default function ClientNavBar() {
       isActive: pathname.startsWith("/dashboard/client/saved"),
     },
   ]
+
+  const publicNavItems: NavItem[] = [
+    {
+      href: "/",
+      label: "Home",
+      icon: Home,
+      isActive: pathname === "/",
+    },
+    {
+      href: "/explore",
+      label: "Explore",
+      icon: Compass,
+      isActive: pathname.startsWith("/explore"),
+    },
+  ]
+
+  const navItems = user ? authenticatedNavItems : publicNavItems
 
   return (
     <BaseNavBar
