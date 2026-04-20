@@ -1,0 +1,206 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { supabaseClient } from "@/lib/supabaseClient"
+import { MapPin, Building2, ArrowUpRight, X } from "lucide-react"
+
+type SavedItem = {
+  id: string
+  item_id: string
+  item_type: string
+  name: string
+  location: string
+}
+
+function getSavedTypeLabel(itemType: string) {
+  return itemType === "organization" ? "Organization" : "Venue"
+}
+
+export default function ClientSavedContent() {
+  const [savedItems, setSavedItems] = useState<SavedItem[]>([])
+  const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [removingId, setRemovingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+
+    async function loadSavedItems() {
+      setLoading(true)
+      setError(null)
+
+      const { data: { session } } = await supabaseClient.auth.getSession()
+      const user = session?.user
+      const token = session?.access_token
+
+      if (!user || !token) {
+        if (!active) return
+        setSavedItems([])
+        setAccessToken(null)
+        setLoading(false)
+        setError("Please log in to view saved items")
+        return
+      }
+
+      setAccessToken(token)
+
+      try {
+        const response = await fetch("/api/client/saved", {
+          cache: "no-store",
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!response.ok) throw new Error("Failed to load saved items")
+        const data = (await response.json()) as SavedItem[]
+        if (!active) return
+        setSavedItems(data)
+      } catch (fetchError: unknown) {
+        if (!active) return
+        setError(fetchError instanceof Error ? fetchError.message : "Failed to load saved items")
+      } finally {
+        if (!active) return
+        setLoading(false)
+      }
+    }
+
+    void loadSavedItems()
+    return () => { active = false }
+  }, [])
+
+  async function handleRemove(savedItemId: string) {
+    if (!accessToken) return
+    setRemovingId(savedItemId)
+    try {
+      const response = await fetch(
+        `/api/client/saved?savedItemId=${encodeURIComponent(savedItemId)}`,
+        { method: "DELETE", headers: { Authorization: `Bearer ${accessToken}` } }
+      )
+      if (!response.ok) throw new Error("Failed to remove saved item")
+      setSavedItems((current) => current.filter((item) => item.id !== savedItemId))
+    } catch (removeError: unknown) {
+      setError(removeError instanceof Error ? removeError.message : "Failed to remove saved item")
+    } finally {
+      setRemovingId(null)
+    }
+  }
+
+  return (
+    <main style={{ minHeight: "100vh", background: "#fafaf8", color: "#1a1a1a", fontFamily: "var(--font-sans, sans-serif)" }}>
+
+      {/* Page Header */}
+      <section style={{ borderBottom: "1px solid #e8e6e0", background: "#ffffff" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 24px 40px" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1d3557", marginBottom: 10 }}>
+            Saved
+          </p>
+          <h1 style={{ fontSize: 36, fontWeight: 400, letterSpacing: "-0.02em", color: "#0f1117", margin: "0 0 12px", fontFamily: "Georgia, 'Times New Roman', serif" }}>
+            Saved Items
+          </h1>
+          <p style={{ fontSize: 14, color: "#6b6b6b", margin: 0, maxWidth: 480, lineHeight: 1.65 }}>
+            Keep track of venues and organizations you want to revisit later.
+          </p>
+        </div>
+      </section>
+
+      {/* Content */}
+      <section style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
+
+        {loading && (
+          <p style={{ fontSize: 14, color: "#9a9a9a" }}>Loading saved items…</p>
+        )}
+        {error && !loading && (
+          <p style={{ fontSize: 14, color: "#c0392b" }}>{error}</p>
+        )}
+        {!loading && !error && savedItems.length === 0 && (
+          <div style={{ textAlign: "center", padding: "80px 0" }}>
+            <p style={{ fontSize: 15, color: "#9a9a9a" }}>Nothing saved yet.</p>
+            <p style={{ fontSize: 13, color: "#b8b8b8", marginTop: 6 }}>Venues and organizations you save will appear here.</p>
+          </div>
+        )}
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: 16 }}>
+          {savedItems.map((item) => (
+            <div
+              key={item.id}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e8e6e0",
+                borderRadius: 16,
+                padding: "24px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 0,
+                transition: "box-shadow 0.2s ease",
+                position: "relative",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.07)")}
+              onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
+            >
+              {/* Remove button */}
+              <button
+                onClick={() => { void handleRemove(item.id) }}
+                disabled={removingId === item.id}
+                style={{
+                  position: "absolute", top: 16, right: 16,
+                  width: 28, height: 28, borderRadius: "50%",
+                  border: "1px solid #e8e6e0", background: "transparent",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", color: "#9a9a9a",
+                  transition: "background 0.15s, color 0.15s",
+                  opacity: removingId === item.id ? 0.5 : 1,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "#fdf0f0"; e.currentTarget.style.color = "#c0392b" }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#9a9a9a" }}
+                title="Remove"
+              >
+                <X size={13} />
+              </button>
+
+              {/* Type badge */}
+              <div style={{ marginBottom: 14 }}>
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  fontSize: 11, fontWeight: 600, letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: "#1d3557", background: "#eef2f8",
+                  padding: "4px 10px", borderRadius: 20,
+                }}>
+                  <Building2 size={11} />
+                  {getSavedTypeLabel(item.item_type)}
+                </span>
+              </div>
+
+              <h2 style={{ fontSize: 18, fontWeight: 500, color: "#0f1117", margin: "0 0 8px", fontFamily: "Georgia, 'Times New Roman', serif", paddingRight: 20 }}>
+                {item.name}
+              </h2>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}>
+                <MapPin size={12} color="#9a9a9a" />
+                <p style={{ fontSize: 13, color: "#9a9a9a", margin: 0 }}>{item.location}</p>
+              </div>
+
+              <div style={{ marginTop: "auto", borderTop: "1px solid #f0eee8", paddingTop: 16 }}>
+                <Link
+                  href={item.item_type === "organization" ? `/organizations/${item.item_id}` : "/dashboard/client"}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    fontSize: 13, fontWeight: 500, color: "#1d3557",
+                    textDecoration: "none",
+                    background: "transparent", border: "1px solid #c8cdd8",
+                    borderRadius: 24, padding: "8px 18px",
+                    transition: "background 0.15s, border-color 0.15s",
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#f0f3f8"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#1d3557" }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#c8cdd8" }}
+                >
+                  View <ArrowUpRight size={13} />
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </main>
+  )
+}
