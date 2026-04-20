@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -25,6 +25,10 @@ type CheckAvailabilityModalProps = {
   venueName: string
   venueLocation?: string
   onContinue?: (selectedDate: string) => void
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback
 }
 
 function startOfMonth(date: Date) {
@@ -78,7 +82,6 @@ export default function CheckAvailabilityModal({
   onOpenChange,
   venueId,
   venueName,
-  venueLocation,
   onContinue,
 }: CheckAvailabilityModalProps) {
   const [viewDate, setViewDate] = useState(() => startOfMonth(new Date()))
@@ -123,9 +126,9 @@ export default function CheckAvailabilityModal({
           }
           setAvailability(mapped)
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!ignore) {
-          setError(err?.message ?? "Failed to load availability")
+          setError(getErrorMessage(err, "Failed to load availability"))
         }
       } finally {
         if (!ignore) {

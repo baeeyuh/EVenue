@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server"
 import { supabaseServer } from "@/lib/supabaseServer"
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback
+}
+
 function formatDateKey(date: Date) {
   const year = date.getFullYear()
   const month = `${date.getMonth() + 1}`.padStart(2, "0")
@@ -108,10 +112,10 @@ export async function GET(
     return NextResponse.json({
       availability,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("availability route error:", error)
     return NextResponse.json(
-      { message: error?.message ?? "Failed to load availability" },
+      { message: getErrorMessage(error, "Failed to load availability") },
       { status: 500 }
     )
   }

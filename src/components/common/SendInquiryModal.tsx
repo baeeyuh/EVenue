@@ -34,12 +34,15 @@ type SendInquiryModalProps = {
   initialEventDate?: string
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback
+}
+
 export default function SendInquiryModal({
   open,
   onOpenChange,
   venueId,
   venueName,
-  venueLocation,
   ownerName,
   venueCapacity,
   initialEventDate,
@@ -115,10 +118,10 @@ export default function SendInquiryModal({
         if (!ignore) {
           setIsDateAvailable(Boolean(data?.isAvailable))
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!ignore) {
           setIsDateAvailable(null)
-          setError(err?.message ?? "Failed to check date availability")
+          setError(getErrorMessage(err, "Failed to check date availability"))
         }
       } finally {
         if (!ignore) {
@@ -215,8 +218,8 @@ export default function SendInquiryModal({
       setEventType("")
       setMessage("")
       setIsDateAvailable(null)
-    } catch (err: any) {
-      setError(err?.message ?? "Failed to send inquiry")
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to send inquiry"))
     } finally {
       setLoading(false)
     }
