@@ -2,10 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Image from "next/image"
-import Link from "next/link"
-import { ChevronLeft, ChevronRight, MapPin, Users } from "lucide-react"
+import { MapPin, Users } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
 import type { Venue } from "@/types/types"
 import { cn } from "@/lib/utils"
 
@@ -34,16 +32,6 @@ export default function HeroVenueCarousel({
     if (!hasVenues) return null
     return venues[activeIndex]
   }, [hasVenues, venues, activeIndex])
-
-  function goPrev() {
-    if (!hasVenues) return
-    setActiveIndex((prev) => (prev - 1 + venues.length) % venues.length)
-  }
-
-  function goNext() {
-    if (!hasVenues) return
-    setActiveIndex((prev) => (prev + 1) % venues.length)
-  }
 
   if (!activeVenue) {
     return (

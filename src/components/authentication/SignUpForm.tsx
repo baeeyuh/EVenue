@@ -12,6 +12,10 @@ import { signUp } from "@/lib/supabase/auth"
 import { isValidEmail } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback
+}
+
 export default function SignUpForm() {
   const router = useRouter()
   const [role, setRole] = useState<Role | null>(null)
@@ -166,8 +170,8 @@ export default function SignUpForm() {
       } else {
         router.push("/authentication/login?signup=success")
       }
-    } catch (err: any) {
-      setError(err?.message ?? "An unexpected error occurred")
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "An unexpected error occurred"))
     } finally {
       setLoading(false)
       inFlightRef.current = false

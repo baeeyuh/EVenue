@@ -1,10 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { supabaseClient } from "@/lib/supabaseClient"
-import { CalendarDays, MapPin, Clock, ArrowUpRight } from "lucide-react"
+import { CalendarDays, Clock, ArrowUpRight } from "lucide-react"
 
 type BookingItem = {
   id: string
@@ -128,7 +126,7 @@ export default function ClientBookingsContent() {
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {bookings.map((booking, i) => (
+          {bookings.map((booking) => (
             <div
               key={booking.id}
               style={{

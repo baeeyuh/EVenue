@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server"
 import { supabaseServer } from "@/lib/supabaseServer"
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback
+}
+
 function normalizeDateKey(value: string | null | undefined) {
   if (!value) return null
   if (value.length >= 10) {
@@ -67,9 +71,9 @@ export async function GET(
     return NextResponse.json({
       isAvailable: (data?.length ?? 0) === 0,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { message: error?.message ?? "Failed to check date availability" },
+      { message: getErrorMessage(error, "Failed to check date availability") },
       { status: 500 }
     )
   }

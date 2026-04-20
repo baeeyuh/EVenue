@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server"
 import { getAuthenticatedUserId } from "@/lib/services/client/auth"
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback
+}
+
 export async function POST(
   request: Request,
   context: { params: Promise<{ venueId: string }> }
@@ -52,9 +56,9 @@ export async function POST(
     }
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { message: error?.message ?? "Failed to send inquiry" },
+      { message: getErrorMessage(error, "Failed to send inquiry") },
       { status: 500 }
     )
   }
