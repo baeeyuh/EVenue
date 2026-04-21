@@ -77,7 +77,7 @@ export default async function OrganizationPublicPage({ params }: Props) {
                 capacity: v.capacity ?? 0,
                 price: v.price ?? 0,
                 image: v.image ?? "",
-                amenities: [],
+                amenities: v.amenities ?? [],
                 rating: Number(v.rating ?? 0),
                 review_count: v.review_count ?? 0,
                 owner_name: normalizedOrg.name,
@@ -88,6 +88,7 @@ export default async function OrganizationPublicPage({ params }: Props) {
                   .slice(0, 2)
                   .toUpperCase(),
                 description: v.description ?? undefined,
+                additional_info: v.additional_info ?? undefined,
                 venue_type: v.venue_type ?? undefined,
                 is_available: v.is_available ?? true,
               }))}
