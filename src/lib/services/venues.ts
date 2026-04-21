@@ -13,6 +13,8 @@ export type VenueDetailsRow = {
   rating: number | null
   review_count: number | null
   description: string | null
+  additional_info: string | null
+  amenities: string[] | null
   venue_type: string | null
   is_available: boolean | null
 }
@@ -105,12 +107,13 @@ export async function fetchVenues(filters: Partial<VenueFilters> = {}): Promise<
     capacity: venue.capacity ?? 0,
     price: venue.price !== null ? `₱${Number(venue.price).toLocaleString()}` : "Price on request",
     image: venue.image ?? "",
-    amenities: [],
+  amenities: venue.amenities ?? [],
     rating: Number(venue.rating ?? 0),
     reviewCount: venue.review_count ?? 0,
     ownerName: organizationName || "Venue Owner",
     ownerInitials: organizationName ? organizationInitials(organizationName) : "VO",
     description: venue.description ?? undefined,
+    additionalInfo: venue.additional_info ?? undefined,
     venueType: venue.venue_type ?? undefined,
     isAvailable: venue.is_available ?? true,
   }
@@ -126,17 +129,38 @@ export async function fetchFeaturedVenues(): Promise<Venue[]> {
 }
 
 export async function fetchVenuesByOrganizationId(id: string): Promise<VenueDetailsRow[]> {
-  const { data, error } = await supabaseServer
+  const fullResult = await supabaseServer
+    .from("venues")
+    .select("id, organization_id, name, location, capacity, price, image, rating, review_count, description, additional_info, amenities, venue_type, is_available")
+    .eq("organization_id", id)
+
+  if (!fullResult.error) {
+    return (fullResult.data as VenueDetailsRow[] | null) ?? []
+  }
+
+  const errorText = `${String((fullResult.error as { message?: string } | null)?.message ?? "")}`
+  const isMissingColumns = /column|amenities|additional_info|schema cache/i.test(errorText)
+
+  if (!isMissingColumns) {
+    console.error(fullResult.error)
+    return []
+  }
+
+  const legacyResult = await supabaseServer
     .from("venues")
     .select("id, organization_id, name, location, capacity, price, image, rating, review_count, description, venue_type, is_available")
     .eq("organization_id", id)
 
-  if (error) {
-    console.error(error)
+  if (legacyResult.error) {
+    console.error(legacyResult.error)
     return []
   }
 
-  return (data as VenueDetailsRow[] | null) ?? []
+  return ((legacyResult.data as VenueDetailsRow[] | null) ?? []).map((venue) => ({
+    ...venue,
+    amenities: null,
+    additional_info: null,
+  }))
 }
 
 export async function createAvailabilityRequest(payload: AvailabilityRequestPayload) {

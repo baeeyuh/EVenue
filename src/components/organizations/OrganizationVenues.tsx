@@ -18,6 +18,8 @@ type VenueLike = {
   owner_initials?: string
   ownerInitials?: string
   description?: string
+  additional_info?: string
+  additionalInfo?: string
   venue_type?: string
   venueType?: string
   is_available?: boolean
@@ -47,6 +49,7 @@ export default function OrganizationVenues({ venues }: { venues: VenueLike[] }) 
             ownerName={v.owner_name ?? v.ownerName ?? ""}
             ownerInitials={v.owner_initials ?? v.ownerInitials ?? ""}
             description={v.description}
+            additionalInfo={v.additional_info ?? v.additionalInfo}
             venueType={v.venue_type ?? v.venueType}
             isAvailable={v.is_available ?? v.isAvailable ?? true}
           />

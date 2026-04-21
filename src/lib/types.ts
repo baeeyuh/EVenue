@@ -12,6 +12,7 @@ export type Venue = {
   owner_name?: string
   owner_initials?: string
   description?: string
+  additionalInfo?: string
   venue_type?: string
   is_available?: boolean
 }

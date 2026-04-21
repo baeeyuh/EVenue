@@ -22,15 +22,26 @@ export type VenueCardProps = {
   ownerName: string
   ownerInitials: string
   description?: string
+  additionalInfo?: string
   venueType?: string
   isAvailable?: boolean
+  context?: "client" | "owner"
+  onOwnerEdit?: (venueId: string) => void
+  onOwnerViewAvailability?: (venueId: string, venueName: string) => void
 }
 
 export default function VenueCard(props: VenueCardProps) {
   const [open, setOpen] = useState(false)
   const imageSrc = String(props.image ?? "").trim()
-  const safeImage = imageSrc ? (imageSrc.startsWith("http") ? imageSrc : "/images/placeholder-venue.jpg") : null
+  const safeImage = imageSrc
+    ? (imageSrc.startsWith("http") || imageSrc.startsWith("/")
+        ? imageSrc
+        : "/images/placeholder-venue.jpg")
+    : "/images/placeholder-venue.jpg"
   const displayName = props.organizationName?.trim() || props.ownerName?.trim() || props.name
+  const descriptionPreview = props.description?.trim()
+  const additionalInfoPreview = props.additionalInfo?.trim()
+  const infoPreview = additionalInfoPreview || descriptionPreview
 
   return (
     <>
@@ -39,17 +50,13 @@ export default function VenueCard(props: VenueCardProps) {
         className="overflow-hidden rounded-2xl border-border/60 bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg cursor-pointer group p-0"
       >
         <div className="relative w-full" style={{ aspectRatio: "3/2", minHeight: 160 }}>
-          {safeImage ? (
-            <Image
-              src={safeImage}
-              alt={props.name}
-              fill
-              sizes="(max-width: 768px) 100vw, 33vw"
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-          ) : (
-            <div className="w-full h-full bg-muted-foreground/8" />
-          )}
+          <Image
+            src={safeImage}
+            alt={props.name}
+            fill
+            sizes="(max-width: 768px) 100vw, 33vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
           <div className="absolute top-3 left-3 bg-primary/90 text-primary-foreground text-[10px] px-2.5 py-1 rounded-full tracking-wide font-medium">
             {(props.isAvailable ?? true) ? "Available" : "Unavailable"}
           </div>
@@ -57,7 +64,7 @@ export default function VenueCard(props: VenueCardProps) {
 
         <div className="p-4 pt-0 space-y-3">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-serif text-xl font-light leading-tight text-foreground">
+            <h3 className="font-serif text-xl font-light leading-tight text-foreground truncate">
               {displayName}
             </h3>
             <span className="text-base font-semibold text-primary whitespace-nowrap pt-0.5">
@@ -71,6 +78,12 @@ export default function VenueCard(props: VenueCardProps) {
             <MapPin className="w-3 h-3 shrink-0" />
             {props.location}
           </div>
+
+          {infoPreview && (
+            <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+              {infoPreview}
+            </p>
+          )}
 
           <div className="flex items-center gap-1.5">
             <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
