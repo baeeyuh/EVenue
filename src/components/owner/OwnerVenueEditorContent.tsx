@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Building2, MapPin, Users, Layers2, CheckCircle2, ArrowLeftIcon } from "lucide-react"
+import { Building2, MapPin, Users, Layers2, CheckCircle2, ArrowLeftIcon, PlusIcon } from "lucide-react"
 
 import { supabaseClient } from "@/lib/supabaseClient"
 import { Button } from "@/components/ui/button"
@@ -58,6 +58,27 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback
 }
 
+function normalizeAmenity(name: string) {
+  return name.trim().toLowerCase()
+}
+
+function dedupeAmenities(names: string[]) {
+  const unique = new Map<string, string>()
+
+  for (const raw of names) {
+    if (typeof raw !== "string") continue
+    const trimmed = raw.trim()
+    if (!trimmed) continue
+
+    const normalized = normalizeAmenity(trimmed)
+    if (!unique.has(normalized)) {
+      unique.set(normalized, trimmed)
+    }
+  }
+
+  return Array.from(unique.values())
+}
+
 export default function OwnerVenueEditorContent({ mode, venueId }: OwnerVenueEditorContentProps) {
   const router = useRouter()
 
@@ -71,7 +92,9 @@ export default function OwnerVenueEditorContent({ mode, venueId }: OwnerVenueEdi
   const [price, setPrice] = useState("")
   const [image, setImage] = useState("")
   const [description, setDescription] = useState("")
-  const [amenitiesText, setAmenitiesText] = useState("")
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
+  const [amenityOptions, setAmenityOptions] = useState<string[]>([])
+  const [customAmenity, setCustomAmenity] = useState("")
   const [additionalInfo, setAdditionalInfo] = useState("")
   const [venueType, setVenueType] = useState("")
   const [isAvailable, setIsAvailable] = useState("true")
@@ -99,29 +122,44 @@ export default function OwnerVenueEditorContent({ mode, venueId }: OwnerVenueEdi
         return
       }
 
-      if (mode !== "edit") {
-        setLoading(false)
-        return
-      }
-
-      if (!venueId) {
-        setError("Missing venue id")
-        setLoading(false)
-        return
-      }
-
       try {
-        const response = await fetch("/api/owner/venues", {
+        const amenitiesQuery = supabaseClient
+          .from("amenities")
+          .select("name")
+          .order("name", { ascending: true })
+
+        const venuesResponse = await fetch("/api/owner/venues", {
           cache: "no-store",
           headers: {
             Authorization: `Bearer ${token}`,
           },
         })
 
-        const data = (await response.json()) as OwnerVenue[] | { message?: string }
+        const [amenitiesResult, venuesJson] = await Promise.all([
+          amenitiesQuery,
+          venuesResponse.json(),
+        ])
 
-        if (!response.ok) {
+        const optionNames = ((amenitiesResult.data ?? []) as Array<{ name: string | null }>)
+          .map((row) => row.name?.trim() ?? "")
+          .filter(Boolean)
+
+        if (!active) return
+        setAmenityOptions(dedupeAmenities(optionNames))
+
+        const data = venuesJson as OwnerVenue[] | { message?: string }
+
+        if (!venuesResponse.ok) {
           throw new Error((data as { message?: string })?.message || "Failed to load venue")
+        }
+
+        if (mode !== "edit") {
+          setLoading(false)
+          return
+        }
+
+        if (!venueId) {
+          throw new Error("Missing venue id")
         }
 
         const venue = (data as OwnerVenue[]).find((item) => item.id === venueId)
@@ -138,8 +176,10 @@ export default function OwnerVenueEditorContent({ mode, venueId }: OwnerVenueEdi
         setPrice(venue.price ? String(venue.price) : "")
         setImage(venue.image ?? "")
         setDescription(venue.description ?? "")
-    setAmenitiesText((venue.amenities ?? []).join(", "))
-    setAdditionalInfo(venue.additional_info ?? "")
+        const venueAmenities = dedupeAmenities(venue.amenities ?? [])
+        setSelectedAmenities(venueAmenities)
+        setAmenityOptions((current) => dedupeAmenities([...current, ...venueAmenities]))
+        setAdditionalInfo(venue.additional_info ?? "")
         setVenueType(venue.venue_type ?? "")
         setIsAvailable(venue.is_available === false ? "false" : "true")
       } catch (bootstrapError: unknown) {
@@ -157,6 +197,27 @@ export default function OwnerVenueEditorContent({ mode, venueId }: OwnerVenueEdi
       active = false
     }
   }, [mode, venueId])
+
+  function toggleAmenity(amenity: string, checked: boolean) {
+    const normalized = normalizeAmenity(amenity)
+
+    setSelectedAmenities((current) => {
+      if (checked) {
+        return dedupeAmenities([...current, amenity])
+      }
+
+      return current.filter((item) => normalizeAmenity(item) !== normalized)
+    })
+  }
+
+  function addCustomAmenity() {
+    const trimmed = customAmenity.trim()
+    if (!trimmed) return
+
+    setAmenityOptions((current) => dedupeAmenities([...current, trimmed]))
+    setSelectedAmenities((current) => dedupeAmenities([...current, trimmed]))
+    setCustomAmenity("")
+  }
 
   async function handleSubmit() {
     if (!accessToken) {
@@ -181,10 +242,7 @@ export default function OwnerVenueEditorContent({ mode, venueId }: OwnerVenueEdi
         price: price ? Number(price) : null,
         image,
         description,
-        amenities: amenitiesText
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
+        amenities: dedupeAmenities(selectedAmenities),
         additionalInfo,
         venueType,
         isAvailable: isAvailable === "true",
@@ -395,13 +453,63 @@ export default function OwnerVenueEditorContent({ mode, venueId }: OwnerVenueEdi
                 <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                   Amenities
                 </Label>
-                <Input
-                  value={amenitiesText}
-                  onChange={(e) => setAmenitiesText(e.target.value)}
-                  placeholder="Parking, WiFi, Stage, AV System"
-                  className="h-11 rounded-xl border-border/60 bg-muted/40"
-                />
-                <p className="text-xs text-muted-foreground">Separate each amenity with a comma.</p>
+                <div className="rounded-xl border border-border/60 bg-muted/25 p-4">
+                  {amenityOptions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No saved amenities yet. Add one below.</p>
+                  ) : (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {amenityOptions.map((option) => {
+                        const normalizedOption = normalizeAmenity(option)
+                        const checked = selectedAmenities.some(
+                          (item) => normalizeAmenity(item) === normalizedOption,
+                        )
+
+                        return (
+                          <label
+                            key={normalizedOption}
+                            className="flex items-center gap-2 rounded-md border border-border/60 bg-background/80 px-3 py-2 text-sm"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => toggleAmenity(option, e.target.checked)}
+                              className="h-4 w-4 accent-primary"
+                            />
+                            <span>{option}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      value={customAmenity}
+                      onChange={(e) => setCustomAmenity(e.target.value)}
+                      placeholder="Add custom amenity (e.g. Helipad)"
+                      className="h-10 rounded-xl border-border/60 bg-background"
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault()
+                          addCustomAmenity()
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-10 rounded-xl border-border/60"
+                      onClick={addCustomAmenity}
+                      disabled={!customAmenity.trim()}
+                    >
+                      <PlusIcon className="mr-2 h-4 w-4" />
+                      Add
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Select from existing amenities or add a custom one.
+                </p>
               </div>
 
               <div className="space-y-1.5 md:col-span-2">
