@@ -7,11 +7,13 @@ import { Card, CardContent } from "@/components/ui/card"
 
 type OwnerBooking = {
   id: string
+  code: string | null
   venue_id: string | null
   venue_name: string
   client_id: string | null
   event_type: string | null
   event_date: string | null
+  end_date: string | null
   guest_count: number | null
   status: string | null
   price: number | null
@@ -108,11 +110,11 @@ export default function OwnerBookingsContent() {
       <section className="border-b border-border/60 bg-background">
         <div className="mx-auto max-w-6xl px-6 py-12">
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-            Confirmed Events
+            Bookings Overview
           </p>
           <h1 className="font-serif text-4xl font-light tracking-tight">Bookings</h1>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
-            Keep track of confirmed venue reservations and upcoming events.
+            Keep track of venue reservations and upcoming events.
           </p>
         </div>
       </section>
@@ -138,10 +140,10 @@ export default function OwnerBookingsContent() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-serif text-2xl font-light">
-                      {booking.event_type || "Event"}
+                      {booking.venue_name}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {booking.venue_name}
+                      Booking code: {booking.code ?? booking.id.slice(0, 8).toUpperCase()}
                     </p>
                   </div>
 
