@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { ChevronDown, LogOut, User } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
@@ -43,12 +43,20 @@ export default function BaseNavBar({
   roleLabel,
   authActions,
 }: BaseNavBarProps) {
-  const router = useRouter()
+  const [isSigningOut, setIsSigningOut] = useState(false)
 
   async function handleSignOut() {
-    await signOut()
-    router.replace("/")
-    router.refresh()
+    if (isSigningOut) return
+
+    setIsSigningOut(true)
+    const { error } = await signOut()
+
+    if (error) {
+      setIsSigningOut(false)
+      return
+    }
+
+    window.location.assign("/")
   }
 
   const firstName = user?.user_metadata?.first_name ?? user?.email?.split("@")[0] ?? "User"
@@ -107,10 +115,11 @@ export default function BaseNavBar({
 
                     <DropdownMenuItem
                       onClick={handleSignOut}
+                      disabled={isSigningOut}
                       className="cursor-pointer text-destructive"
                     >
                       <LogOut className="mr-2 h-4 w-4" />
-                      Log Out
+                      {isSigningOut ? "Logging Out..." : "Log Out"}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -174,10 +183,11 @@ export default function BaseNavBar({
 
                   <DropdownMenuItem
                     onClick={handleSignOut}
+                    disabled={isSigningOut}
                     className="cursor-pointer text-destructive"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
-                    Log Out
+                    {isSigningOut ? "Logging Out..." : "Log Out"}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
