@@ -2,9 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { getOwnerOrgIds } from "@/lib/services/owner/organizations"
 
 const OWNER_VENUE_SELECT_VIEW =
-  "id, organization_id, name, location, capacity, is_available, venue_type, image, price, description, amenities"
-const OWNER_VENUE_SELECT_WITH_ADDITIONAL_INFO =
-  "id, organization_id, name, location, capacity, is_available, venue_type, image, price, description, additional_info"
+  "id, organization_id, organization_name, name, location, capacity, is_available, venue_type, image, price, description, additional_info, amenities"
 const OWNER_VENUE_SELECT_LEGACY =
   "id, organization_id, name, location, capacity, is_available, venue_type, image, price, description"
 
@@ -20,6 +18,7 @@ function isMissingColumnError(error: unknown): boolean {
 export type OwnerVenueRow = {
   id: string
   organization_id?: string | null
+  organization_name?: string | null
   name: string
   location: string | null
   capacity: number | null
@@ -94,24 +93,14 @@ async function hydrateOwnerVenueById(
   venueId: string,
 ): Promise<OwnerVenueRow> {
   const fromView = await client
-    .from("venue_with_amenities")
+    .from("venue_full_details")
     .select(OWNER_VENUE_SELECT_VIEW)
     .eq("id", venueId)
     .in("organization_id", orgIds)
     .single()
 
   if (!fromView.error) {
-    const fromVenues = await client
-      .from("venues")
-      .select("id, additional_info")
-      .eq("id", venueId)
-      .in("organization_id", orgIds)
-      .maybeSingle<{ id: string; additional_info: string | null }>()
-
-    return {
-      ...(fromView.data as OwnerVenueRow),
-      additional_info: fromVenues.data?.additional_info ?? null,
-    }
+    return fromView.data as OwnerVenueRow
   }
 
   const fallback = await client
@@ -238,7 +227,7 @@ export async function fetchOwnerVenues(
   if (orgIds.length === 0) return []
 
   const { data, error } = await client
-    .from("venue_with_amenities")
+    .from("venue_full_details")
     .select(OWNER_VENUE_SELECT_VIEW)
     .in("organization_id", orgIds)
     .order("name", { ascending: true })
@@ -267,34 +256,7 @@ export async function fetchOwnerVenues(
     }))
   }
 
-  const venuesFromView = (data as OwnerVenueRow[] | null) ?? []
-  const venueIds = venuesFromView.map((venue) => venue.id)
-
-  if (venueIds.length === 0) {
-    return venuesFromView.map((venue) => ({
-      ...venue,
-      additional_info: null,
-    }))
-  }
-
-  const additionalInfoResult = await client
-    .from("venues")
-    .select("id, additional_info")
-    .in("id", venueIds)
-    .in("organization_id", orgIds)
-
-  const additionalInfoById = new Map<string, string | null>()
-
-  if (!additionalInfoResult.error) {
-    ;((additionalInfoResult.data ?? []) as Array<{ id: string; additional_info: string | null }>).forEach((row) => {
-      additionalInfoById.set(row.id, row.additional_info ?? null)
-    })
-  }
-
-  return venuesFromView.map((venue) => ({
-    ...venue,
-    additional_info: additionalInfoById.get(venue.id) ?? null,
-  }))
+  return (data as OwnerVenueRow[] | null) ?? []
 }
 
 export async function createOwnerVenue(

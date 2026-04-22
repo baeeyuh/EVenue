@@ -38,7 +38,6 @@ export default function VenueCard(props: VenueCardProps) {
         ? imageSrc
         : "/images/placeholder-venue.jpg")
     : "/images/placeholder-venue.jpg"
-  const displayName = props.organizationName?.trim() || props.ownerName?.trim() || props.name
   const descriptionPreview = props.description?.trim()
   const additionalInfoPreview = props.additionalInfo?.trim()
   const infoPreview = additionalInfoPreview || descriptionPreview
@@ -65,7 +64,7 @@ export default function VenueCard(props: VenueCardProps) {
         <div className="p-4 pt-0 space-y-3">
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-serif text-xl font-light leading-tight text-foreground truncate">
-              {displayName}
+              {props.name}
             </h3>
             <span className="text-base font-semibold text-primary whitespace-nowrap pt-0.5">
               {typeof props.price === "number"
