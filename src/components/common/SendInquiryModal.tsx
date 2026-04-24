@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { supabaseClient } from "@/lib/supabaseClient"
+import { toast } from "sonner"
 
 type SendInquiryModalProps = {
   open: boolean
@@ -208,6 +209,9 @@ export default function SendInquiryModal({
       }
 
       setSuccess("Inquiry sent successfully.")
+      toast.success("Inquiry sent", {
+        description: "Your inquiry is now pending owner response.",
+      })
       setFullName("")
       setEmail("")
       setContactNumber("")
@@ -218,8 +222,13 @@ export default function SendInquiryModal({
       setEventType("")
       setMessage("")
       setIsDateAvailable(null)
+      onOpenChange(false)
     } catch (err: unknown) {
-      setError(getErrorMessage(err, "Failed to send inquiry"))
+      const message = getErrorMessage(err, "Failed to send inquiry")
+      setError(message)
+      toast.error("Failed to send inquiry", {
+        description: message,
+      })
     } finally {
       setLoading(false)
     }
@@ -228,7 +237,7 @@ export default function SendInquiryModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl overflow-hidden rounded-[2rem] border-border/60 p-0">
-        <div className="border-b border-border/60 bg-gradient-to-br from-primary/8 via-background to-background px-6 py-5">
+        <div className="border-b border-border/60 bg-linear-to-br from-primary/8 via-background to-background px-6 py-5">
           <DialogHeader className="space-y-2">
             <DialogTitle className="font-serif text-2xl font-light">
               Send inquiry
@@ -395,7 +404,7 @@ export default function SendInquiryModal({
               placeholder="Tell the host about your event, setup, inclusions you need, styling, catering, sound system, or other requests..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="min-h-[140px] w-full rounded-2xl border border-border/60 bg-muted/40 px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:border-primary"
+              className="min-h-35 w-full rounded-2xl border border-border/60 bg-muted/40 px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:border-primary"
             />
           </div>
 
@@ -406,6 +415,7 @@ export default function SendInquiryModal({
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
+              disabled={loading}
               className="h-11 rounded-full border-border/60"
             >
               Close

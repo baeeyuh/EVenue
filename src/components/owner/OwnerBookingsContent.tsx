@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react"
 
 import { supabaseClient } from "@/lib/supabaseClient"
+import BookingDetailsModal from "@/components/common/BookingDetailsModal"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 type OwnerBooking = {
   id: string
   code: string | null
+  inquiry_id: string | null
   venue_id: string | null
   venue_name: string
   client_id: string | null
@@ -18,6 +21,7 @@ type OwnerBooking = {
   status: string | null
   price: number | null
   created_at: string | null
+  inquiry_message: string | null
 }
 
 function formatDate(value: string | null) {
@@ -52,6 +56,7 @@ export default function OwnerBookingsContent() {
   const [bookings, setBookings] = useState<OwnerBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedBooking, setSelectedBooking] = useState<OwnerBooking | null>(null)
 
   useEffect(() => {
     let active = true
@@ -163,10 +168,29 @@ export default function OwnerBookingsContent() {
                     Revenue: ₱{Number(booking.price ?? 0).toLocaleString()}
                   </span>
                 </div>
+
+                <div className="flex justify-end pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-full border-border/60"
+                    onClick={() => setSelectedBooking(booking)}
+                  >
+                    View Details
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
       </section>
+
+      {selectedBooking && (
+        <BookingDetailsModal
+          booking={selectedBooking}
+          open={Boolean(selectedBooking)}
+          onClose={() => setSelectedBooking(null)}
+        />
+      )}
     </main>
   )
 }

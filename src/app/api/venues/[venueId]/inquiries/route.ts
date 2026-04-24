@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getAuthenticatedUserId } from "@/lib/services/client/auth"
+import { createInquiry } from "@/lib/services/client/inquiries"
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback
@@ -26,34 +27,21 @@ export async function POST(
       )
     }
 
-    const metaParts = [
-      `Venue: ${body.venueName ?? venueId}`,
-      `Event date: ${body.eventDate}`,
-      body.eventType ? `Event type: ${body.eventType}` : null,
-      body.guestCount ? `Guest count: ${body.guestCount}` : null,
-      body.startTime ? `Start time: ${body.startTime}` : null,
-      body.endTime ? `End time: ${body.endTime}` : null,
-      body.contactNumber ? `Contact number: ${body.contactNumber}` : null,
-      body.email ? `Email: ${body.email}` : null,
-      body.fullName ? `Full name: ${body.fullName}` : null,
-      "",
-      "Message:",
-      body.message,
-    ]
-
-    const composedMessage = metaParts.filter(Boolean).join("\n")
-
-    const { error } = await client.from("inquiries").insert({
-      id: crypto.randomUUID(),
-      user_id: userId,
-      venue_id: venueId,
-      message: composedMessage,
-      status: "Pending",
+    await createInquiry(client, userId, {
+      venueId,
+      fullName: String(body.fullName ?? ""),
+      email: String(body.email ?? ""),
+      eventDate: String(body.eventDate ?? ""),
+      message: String(body.message ?? ""),
+      eventType: body.eventType ? String(body.eventType) : undefined,
+      guestCount:
+        typeof body.guestCount === "number" && Number.isFinite(body.guestCount)
+          ? body.guestCount
+          : undefined,
+      startTime: body.startTime ? String(body.startTime) : undefined,
+      endTime: body.endTime ? String(body.endTime) : undefined,
+      contactNumber: body.contactNumber ? String(body.contactNumber) : undefined,
     })
-
-    if (error) {
-      throw new Error(error.message)
-    }
 
     return NextResponse.json({ success: true })
   } catch (error: unknown) {

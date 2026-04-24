@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ArrowUpRight, CalendarDays, MessageSquare, Search } from "lucide-react"
+import { CalendarDays, MessageSquare, Search } from "lucide-react"
+import { toast } from "sonner"
 
 import { supabaseClient } from "@/lib/supabaseClient"
 import InquiryDetailsModal, {
@@ -24,15 +25,29 @@ function formatInquiryDate(value: string | null) {
 function getStatusVariant(status: string | null) {
   const s = (status ?? "").toLowerCase()
 
-  if (s === "responded") {
+  if (s === "accepted" || s === "responded") {
     return "border-emerald-200 bg-emerald-50 text-emerald-700"
   }
 
-  if (s === "closed") {
-    return "border-slate-200 bg-slate-100 text-slate-700"
+  if (s === "rejected" || s === "declined" || s === "closed") {
+    return "border-rose-200 bg-rose-50 text-rose-700"
   }
 
   return "border-amber-200 bg-amber-50 text-amber-700"
+}
+
+function getInquiryStatusLabel(status: string | null) {
+  const s = (status ?? "").toLowerCase()
+
+  if (s === "accepted" || s === "responded") {
+    return "Accepted"
+  }
+
+  if (s === "rejected" || s === "declined" || s === "closed") {
+    return "Declined"
+  }
+
+  return "Waiting for response"
 }
 
 export default function ClientInquiriesContent() {
@@ -43,8 +58,6 @@ export default function ClientInquiriesContent() {
   const [error, setError] = useState<string | null>(null)
 
   const [selectedInquiry, setSelectedInquiry] = useState<InquiryItem | null>(null)
-  const [detailsLoading, setDetailsLoading] = useState(false)
-  const [detailsError, setDetailsError] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -121,9 +134,57 @@ export default function ClientInquiriesContent() {
   }, [search, inquiries])
 
   function handleViewInquiry(inquiry: InquiryItem) {
-    setDetailsError(null)
-    setDetailsLoading(false)
     setSelectedInquiry(inquiry)
+  }
+
+  async function handleConfirmBooking(inquiryId: string) {
+    try {
+      const {
+        data: { session },
+      } = await supabaseClient.auth.getSession()
+
+      const accessToken = session?.access_token
+
+      if (!accessToken) {
+        throw new Error("Please log in to confirm your booking")
+      }
+
+      const response = await fetch("/api/client/inquiries", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ inquiryId }),
+      })
+
+      const data = (await response.json()) as { created?: boolean; message?: string }
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Failed to confirm booking")
+      }
+
+      toast.success(data.created ? "Booking confirmed" : "Booking already exists", {
+        description: data.created
+          ? "Your accepted inquiry has been converted into a booking."
+          : "This inquiry was already confirmed earlier.",
+      })
+
+      setInquiries((prev) =>
+        prev.map((item) => (item.id === inquiryId ? { ...item, status: "accepted" } : item))
+      )
+    } catch (confirmError: unknown) {
+      const message =
+        confirmError instanceof Error ? confirmError.message : "Failed to confirm booking"
+      toast.error("Booking confirmation failed", {
+        description: message,
+      })
+    }
+  }
+
+  function handleInquiryUpdated(nextInquiry: InquiryItem) {
+    setInquiries((prev) => prev.map((item) => (item.id === nextInquiry.id ? nextInquiry : item)))
+    setSelectedInquiry(nextInquiry)
   }
 
   return (
@@ -197,7 +258,7 @@ export default function ClientInquiriesContent() {
                       inquiry.status
                     )}`}
                   >
-                    {inquiry.status ?? "Pending"}
+                    {getInquiryStatusLabel(inquiry.status)}
                   </Badge>
                 </div>
 
@@ -216,15 +277,16 @@ export default function ClientInquiriesContent() {
                     <span>Sent {formatInquiryDate(inquiry.created_at)}</span>
                   </div>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleViewInquiry(inquiry)}
-                    className="rounded-full border-border/60 bg-background hover:bg-muted"
-                  >
-                    View Inquiry
-                    <ArrowUpRight className="ml-2 h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleViewInquiry(inquiry)}
+                      className="rounded-full border-border/60 bg-background hover:bg-muted"
+                    >
+                      View Details
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -232,16 +294,16 @@ export default function ClientInquiriesContent() {
         </section>
       </main>
 
-      <InquiryDetailsModal
-        inquiry={selectedInquiry}
-        loading={detailsLoading}
-        error={detailsError}
-        open={Boolean(selectedInquiry || detailsLoading || detailsError)}
-        onClose={() => {
-          setSelectedInquiry(null)
-          setDetailsError(null)
-        }}
-      />
+      {selectedInquiry && (
+        <InquiryDetailsModal
+          inquiry={selectedInquiry}
+          open={Boolean(selectedInquiry)}
+          onClose={() => setSelectedInquiry(null)}
+          role="client"
+          onInquiryUpdated={handleInquiryUpdated}
+          onConfirmBooking={handleConfirmBooking}
+        />
+      )}
     </>
   )
 }
