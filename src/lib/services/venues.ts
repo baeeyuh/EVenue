@@ -167,7 +167,7 @@ export async function createAvailabilityRequest(payload: AvailabilityRequestPayl
     guest_count: payload.guestCount ?? null,
     event_type: payload.eventType ?? null,
     notes: payload.notes ?? null,
-    status: "pending",
+    status: "Pending",
   })
 
   if (error) {

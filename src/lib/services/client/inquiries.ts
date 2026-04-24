@@ -159,7 +159,7 @@ export async function createInquiry(
     date: payload.eventDate,
     pax: payload.guestCount ?? null,
     message: composedMessage,
-    status: "pending",
+    status: "Pending",
   })
 
   if (!richInsert.error) {
@@ -182,7 +182,7 @@ export async function createInquiry(
     venue_id: payload.venueId,
     user_id: userId,
     message: composedMessage,
-    status: "pending",
+    status: "Pending",
   })
 
   if (fallbackInsert.error) {
