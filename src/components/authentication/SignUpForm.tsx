@@ -183,7 +183,7 @@ export default function SignUpForm() {
       <AuthTabBar active="signup" />
 
       <div>
-        <h1 className="font-serif text-3xl font-light">Join EVenue.</h1>
+        <h1 className="font-serif text-2xl font-light sm:text-3xl">Join EVenue.</h1>
         <p className="mt-1 text-xs text-muted-foreground">
           {role === "owner" ? "Create your business account below" : "Create your account below"}
         </p>
@@ -191,7 +191,7 @@ export default function SignUpForm() {
 
       <RolePicker value={role} onChange={setRole} />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">
             First name
@@ -256,7 +256,7 @@ export default function SignUpForm() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">
                 City / Municipality
@@ -297,7 +297,7 @@ export default function SignUpForm() {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">
             Password

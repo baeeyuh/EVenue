@@ -258,10 +258,6 @@ export default function OwnerInquiriesContent() {
                     </p>
                   </div>
 
-                  <div className="rounded-xl border border-border/60 bg-muted/40 p-3 text-sm text-muted-foreground">
-                    {inquiry.message}
-                  </div>
-
                   <div className="flex items-center justify-end gap-2">
                     <Button
                       type="button"
