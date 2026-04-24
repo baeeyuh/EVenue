@@ -1,17 +1,15 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { CalendarDays, Send, Users } from "lucide-react"
 import { toast } from "sonner"
 
 import {
-  appendInquiryThreadMessage,
-  getInquiryThread,
   normalizeInquiryStatus,
-  parseInquiryMessage,
-  type InquiryMessageRole,
 } from "@/lib/services/inquiries/shared"
 import { supabaseClient } from "@/lib/supabaseClient"
+import { sendMessage } from "@/lib/services/details/client"
+import type { DetailRole, InquiryDetails } from "@/lib/services/details/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,25 +21,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-export type InquiryItem = {
-  id: string
-  status: string | null
-  message: string
-  created_at: string | null
-  venue_id: string | null
-  venue_name: string
-  date?: string | null
-  pax?: number | null
-}
-
 type InquiryDetailsModalProps = {
-  inquiry: InquiryItem | null
+  inquiry: InquiryDetails | null
   open: boolean
   onClose: () => void
-  role: InquiryMessageRole
+  role: DetailRole
   loading?: boolean
   error?: string | null
-  onInquiryUpdated?: (nextInquiry: InquiryItem) => void
+  onInquiryUpdated?: (nextInquiry: InquiryDetails) => void
   onConfirmBooking?: (inquiryId: string) => Promise<void>
   onOwnerStatusChange?: (inquiryId: string, status: "accepted" | "rejected") => Promise<void>
 }
@@ -107,49 +94,7 @@ export default function InquiryDetailsModal({
   const [processingAction, setProcessingAction] = useState<null | "confirm" | "accept" | "reject">(
     null
   )
-
-  const parsedInquiry = useMemo(() => {
-    if (!inquiry?.message) return null
-    return parseInquiryMessage(inquiry.message)
-  }, [inquiry])
-
-  const thread = useMemo(() => {
-    if (!inquiry?.message) return []
-    return getInquiryThread(inquiry.message, inquiry.created_at)
-  }, [inquiry])
-
-  const resolvedDate = inquiry?.date || parsedInquiry?.eventDate || null
-  const resolvedPax = inquiry?.pax ?? parsedInquiry?.guestCount ?? null
   const normalizedStatus = normalizeInquiryStatus(inquiry?.status)
-
-  async function sendMessage(inquiryId: string, message: string, senderRole: InquiryMessageRole) {
-    const {
-      data: { session },
-    } = await supabaseClient.auth.getSession()
-
-    const accessToken = session?.access_token
-
-    if (!accessToken) {
-      throw new Error("Please log in to send a message")
-    }
-
-    const endpoint = senderRole === "client" ? "/api/client/inquiries" : "/api/owner/inquiries"
-
-    const response = await fetch(endpoint, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ inquiryId, message }),
-    })
-
-    const data = (await response.json()) as { message?: string }
-
-    if (!response.ok) {
-      throw new Error(data?.message || "Failed to send message")
-    }
-  }
 
   async function handleSendMessage() {
     if (!inquiry || sending) return
@@ -164,10 +109,15 @@ export default function InquiryDetailsModal({
 
       const nextInquiry = {
         ...inquiry,
-        message: appendInquiryThreadMessage(inquiry.message, {
-          role,
-          message: nextMessage,
-        }),
+        messages: [
+          ...inquiry.messages,
+          {
+            id: crypto.randomUUID(),
+            message: nextMessage,
+            sender_role: role,
+            created_at: new Date().toISOString(),
+          },
+        ],
       }
 
       onInquiryUpdated?.(nextInquiry)
@@ -292,15 +242,18 @@ export default function InquiryDetailsModal({
               <div className="rounded-2xl border border-border/60 bg-muted/25 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-serif text-xl font-light text-foreground">{inquiry.venue_name}</p>
+                    <p className="font-serif text-xl font-light text-foreground">{inquiry.venue.name}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {inquiry.venue.location ?? "Location not provided"}
+                    </p>
                     <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                       <span className="inline-flex items-center gap-2">
                         <CalendarDays className="h-4 w-4" />
-                        {formatDate(resolvedDate)}
+                        {formatDate(inquiry.date)}
                       </span>
                       <span className="inline-flex items-center gap-2">
                         <Users className="h-4 w-4" />
-                        {resolvedPax ?? "Not provided"} pax
+                        {inquiry.pax ?? "Not provided"} pax
                       </span>
                     </div>
                   </div>
@@ -315,17 +268,35 @@ export default function InquiryDetailsModal({
                 </div>
               </div>
 
+              <div className="rounded-2xl border border-border/60 bg-background p-4 text-sm text-muted-foreground">
+                {role === "client" ? (
+                  <p>
+                    <span className="font-medium text-foreground">Owner:</span> {inquiry.owner.name}
+                  </p>
+                ) : (
+                  <div className="space-y-1">
+                    <p>
+                      <span className="font-medium text-foreground">Client:</span> {inquiry.client.name}
+                    </p>
+                    <p>
+                      <span className="font-medium text-foreground">Contact:</span>{" "}
+                      {inquiry.client.email ?? "No email provided"}
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-3 rounded-2xl border border-border/60 bg-background p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
                   Messages
                 </p>
 
                 <div className="max-h-70 space-y-3 overflow-y-auto rounded-xl border border-border/60 bg-muted/20 p-3">
-                  {thread.length === 0 ? (
+                  {inquiry.messages.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No messages yet.</p>
                   ) : (
-                    thread.map((item) => {
-                      const isClient = item.role === "client"
+                    inquiry.messages.map((item) => {
+                      const isClient = item.sender_role === "client"
 
                       return (
                         <div
@@ -345,8 +316,8 @@ export default function InquiryDetailsModal({
                                 isClient ? "text-primary-foreground/70" : "text-muted-foreground"
                               }`}
                             >
-                              {item.role === "client" ? "Client" : "Owner"}
-                              {item.createdAt ? ` • ${formatMessageTime(item.createdAt)}` : ""}
+                              {item.sender_role === "client" ? "Client" : "Owner"}
+                              {item.created_at ? ` • ${formatMessageTime(item.created_at)}` : ""}
                             </p>
                           </div>
                         </div>

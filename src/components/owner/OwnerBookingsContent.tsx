@@ -1,9 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import { supabaseClient } from "@/lib/supabaseClient"
 import BookingDetailsModal from "@/components/common/BookingDetailsModal"
+import { getBookingDetails } from "@/lib/services/details/client"
+import type { BookingDetails } from "@/lib/services/details/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -56,7 +59,8 @@ export default function OwnerBookingsContent() {
   const [bookings, setBookings] = useState<OwnerBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedBooking, setSelectedBooking] = useState<OwnerBooking | null>(null)
+  const [selectedBooking, setSelectedBooking] = useState<BookingDetails | null>(null)
+  const [openingBookingId, setOpeningBookingId] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -109,6 +113,23 @@ export default function OwnerBookingsContent() {
       active = false
     }
   }, [])
+
+  async function handleOpen(bookingId: string) {
+    setOpeningBookingId(bookingId)
+
+    try {
+      const booking = await getBookingDetails(bookingId, "owner")
+      setSelectedBooking(booking)
+    } catch (detailsFetchError: unknown) {
+      const message =
+        detailsFetchError instanceof Error
+          ? detailsFetchError.message
+          : "Failed to load booking details"
+      toast.error("Unable to load booking details", { description: message })
+    } finally {
+      setOpeningBookingId(null)
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#fafaf8] text-foreground">
@@ -174,9 +195,10 @@ export default function OwnerBookingsContent() {
                     type="button"
                     variant="outline"
                     className="rounded-full border-border/60"
-                    onClick={() => setSelectedBooking(booking)}
+                    onClick={() => void handleOpen(booking.id)}
+                    disabled={openingBookingId === booking.id}
                   >
-                    View Details
+                    {openingBookingId === booking.id ? "Loading..." : "View Details"}
                   </Button>
                 </div>
               </CardContent>

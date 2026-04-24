@@ -5,12 +5,20 @@ import { CalendarDays, MessageSquare, Search } from "lucide-react"
 import { toast } from "sonner"
 
 import { supabaseClient } from "@/lib/supabaseClient"
-import InquiryDetailsModal, {
-  type InquiryItem,
-} from "@/components/client/InquiryDetailsModal"
+import InquiryDetailsModal from "@/components/client/InquiryDetailsModal"
+import { getInquiryDetails } from "@/lib/services/details/client"
+import type { InquiryDetails } from "@/lib/services/details/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+
+type InquiryListItem = {
+  id: string
+  status: string | null
+  message: string
+  created_at: string | null
+  venue_name: string
+}
 
 function formatInquiryDate(value: string | null) {
   if (!value) return "Unknown date"
@@ -51,13 +59,15 @@ function getInquiryStatusLabel(status: string | null) {
 }
 
 export default function ClientInquiriesContent() {
-  const [inquiries, setInquiries] = useState<InquiryItem[]>([])
-  const [filteredInquiries, setFilteredInquiries] = useState<InquiryItem[]>([])
+  const [inquiries, setInquiries] = useState<InquiryListItem[]>([])
+  const [filteredInquiries, setFilteredInquiries] = useState<InquiryListItem[]>([])
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [selectedInquiry, setSelectedInquiry] = useState<InquiryItem | null>(null)
+  const [selectedInquiry, setSelectedInquiry] = useState<InquiryDetails | null>(null)
+  const [openingInquiryId, setOpeningInquiryId] = useState<string | null>(null)
+  const [detailsError, setDetailsError] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -92,7 +102,7 @@ export default function ClientInquiriesContent() {
           throw new Error("Failed to load inquiries")
         }
 
-        const data = (await response.json()) as InquiryItem[]
+  const data = (await response.json()) as InquiryListItem[]
 
         if (!active) return
         setInquiries(data)
@@ -133,8 +143,23 @@ export default function ClientInquiriesContent() {
     )
   }, [search, inquiries])
 
-  function handleViewInquiry(inquiry: InquiryItem) {
-    setSelectedInquiry(inquiry)
+  async function handleViewInquiry(inquiryId: string) {
+    setOpeningInquiryId(inquiryId)
+    setDetailsError(null)
+
+    try {
+      const fullInquiry = await getInquiryDetails(inquiryId, "client")
+      setSelectedInquiry(fullInquiry)
+    } catch (detailsFetchError: unknown) {
+      const message =
+        detailsFetchError instanceof Error
+          ? detailsFetchError.message
+          : "Failed to load inquiry details"
+      setDetailsError(message)
+      toast.error("Unable to load inquiry details", { description: message })
+    } finally {
+      setOpeningInquiryId(null)
+    }
   }
 
   async function handleConfirmBooking(inquiryId: string) {
@@ -170,9 +195,12 @@ export default function ClientInquiriesContent() {
           : "This inquiry was already confirmed earlier.",
       })
 
-      setInquiries((prev) =>
+      setInquiries((prev) => prev.map((item) => (item.id === inquiryId ? { ...item, status: "accepted" } : item)))
+      setFilteredInquiries((prev) =>
         prev.map((item) => (item.id === inquiryId ? { ...item, status: "accepted" } : item))
       )
+
+      setSelectedInquiry((prev) => (prev && prev.id === inquiryId ? { ...prev, status: "accepted" } : prev))
     } catch (confirmError: unknown) {
       const message =
         confirmError instanceof Error ? confirmError.message : "Failed to confirm booking"
@@ -182,8 +210,20 @@ export default function ClientInquiriesContent() {
     }
   }
 
-  function handleInquiryUpdated(nextInquiry: InquiryItem) {
-    setInquiries((prev) => prev.map((item) => (item.id === nextInquiry.id ? nextInquiry : item)))
+  function handleInquiryUpdated(nextInquiry: InquiryDetails) {
+    setInquiries((prev) =>
+      prev.map((item) =>
+        item.id === nextInquiry.id
+          ? {
+              ...item,
+              status: nextInquiry.status,
+              message: nextInquiry.messages.at(-1)?.message ?? item.message,
+              created_at: nextInquiry.created_at,
+              venue_name: nextInquiry.venue.name,
+            }
+          : item
+      )
+    )
     setSelectedInquiry(nextInquiry)
   }
 
@@ -281,10 +321,11 @@ export default function ClientInquiriesContent() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => handleViewInquiry(inquiry)}
+                      onClick={() => void handleViewInquiry(inquiry.id)}
+                      disabled={openingInquiryId === inquiry.id}
                       className="rounded-full border-border/60 bg-background hover:bg-muted"
                     >
-                      View Details
+                      {openingInquiryId === inquiry.id ? "Loading..." : "View Details"}
                     </Button>
                   </div>
                 </div>
@@ -300,6 +341,7 @@ export default function ClientInquiriesContent() {
           open={Boolean(selectedInquiry)}
           onClose={() => setSelectedInquiry(null)}
           role="client"
+          error={detailsError}
           onInquiryUpdated={handleInquiryUpdated}
           onConfirmBooking={handleConfirmBooking}
         />

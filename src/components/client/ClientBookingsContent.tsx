@@ -4,6 +4,9 @@ import { useEffect, useState } from "react"
 import { supabaseClient } from "@/lib/supabaseClient"
 import { CalendarDays, Clock } from "lucide-react"
 import BookingDetailsModal from "@/components/common/BookingDetailsModal"
+import { getBookingDetails } from "@/lib/services/details/client"
+import type { BookingDetails } from "@/lib/services/details/types"
+import { toast } from "sonner"
 
 type BookingItem = {
   id: string
@@ -55,7 +58,8 @@ export default function ClientBookingsContent() {
   const [bookings, setBookings] = useState<BookingItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedBooking, setSelectedBooking] = useState<BookingItem | null>(null)
+  const [selectedBooking, setSelectedBooking] = useState<BookingDetails | null>(null)
+  const [openingBookingId, setOpeningBookingId] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -97,6 +101,23 @@ export default function ClientBookingsContent() {
     void loadBookings()
     return () => { active = false }
   }, [])
+
+  async function handleOpen(bookingId: string) {
+    setOpeningBookingId(bookingId)
+
+    try {
+      const booking = await getBookingDetails(bookingId, "client")
+      setSelectedBooking(booking)
+    } catch (detailsFetchError: unknown) {
+      const message =
+        detailsFetchError instanceof Error
+          ? detailsFetchError.message
+          : "Failed to load booking details"
+      toast.error("Unable to load booking details", { description: message })
+    } finally {
+      setOpeningBookingId(null)
+    }
+  }
 
   return (
     <>
@@ -193,9 +214,10 @@ export default function ClientBookingsContent() {
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = "#f0f3f8"; e.currentTarget.style.borderColor = "#1d3557" }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "#c8cdd8" }}
-                  onClick={() => setSelectedBooking(booking)}
+                  onClick={() => void handleOpen(booking.id)}
+                  disabled={openingBookingId === booking.id}
                 >
-                  View Details
+                  {openingBookingId === booking.id ? "Loading..." : "View Details"}
                 </button>
               </div>
             </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
-import { getClientInquiryDetails } from "@/lib/services/details/server"
+
 import { getAuthenticatedUserId } from "@/lib/services/client/auth"
+import { getClientBookingDetails } from "@/lib/services/details/server"
 
 export async function GET(
   request: Request,
@@ -14,14 +15,14 @@ export async function GET(
     }
 
     const { id } = await context.params
-  const inquiry = await getClientInquiryDetails(client, userId, id)
+    const booking = await getClientBookingDetails(client, userId, id)
 
-    if (!inquiry) {
-      return NextResponse.json({ message: "Inquiry not found" }, { status: 404 })
+    if (!booking) {
+      return NextResponse.json({ message: "Booking not found" }, { status: 404 })
     }
 
-    return NextResponse.json(inquiry)
+    return NextResponse.json(booking)
   } catch {
-    return NextResponse.json({ message: "Failed to fetch inquiry" }, { status: 500 })
+    return NextResponse.json({ message: "Failed to fetch booking details" }, { status: 500 })
   }
 }

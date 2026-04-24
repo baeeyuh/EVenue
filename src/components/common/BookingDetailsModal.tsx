@@ -2,7 +2,7 @@
 
 import { CalendarDays, Users } from "lucide-react"
 
-import { getInquiryThread } from "@/lib/services/inquiries/shared"
+import type { BookingDetails } from "@/lib/services/details/types"
 import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
@@ -12,20 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-export type BookingDetailsItem = {
-  id: string
-  venue_name: string
-  status: string | null
-  event_date?: string | null
-  start_date?: string | null
-  guest_count?: number | null
-  pax?: number | null
-  created_at?: string | null
-  inquiry_message?: string | null
-}
-
 type BookingDetailsModalProps = {
-  booking: BookingDetailsItem | null
+  booking: BookingDetails | null
   open: boolean
   onClose: () => void
 }
@@ -74,10 +62,8 @@ function getStatusLabel(status: string | null) {
 
 export default function BookingDetailsModal({ booking, open, onClose }: BookingDetailsModalProps) {
   const eventDate = booking?.event_date ?? booking?.start_date ?? null
-  const guestCount = booking?.guest_count ?? booking?.pax ?? null
-  const thread = booking?.inquiry_message
-    ? getInquiryThread(booking.inquiry_message, booking.created_at ?? null)
-    : []
+  const guestCount = booking?.guest_count ?? booking?.inquiry?.pax ?? null
+  const thread = booking?.inquiry?.messages ?? []
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
@@ -97,7 +83,10 @@ export default function BookingDetailsModal({ booking, open, onClose }: BookingD
               <div className="rounded-2xl border border-border/60 bg-muted/25 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-serif text-xl font-light">{booking.venue_name}</p>
+                    <p className="font-serif text-xl font-light">{booking.venue.name}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {booking.venue.location ?? "Location not provided"}
+                    </p>
                     <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                       <span className="inline-flex items-center gap-2">
                         <CalendarDays className="h-4 w-4" />
@@ -116,6 +105,18 @@ export default function BookingDetailsModal({ booking, open, onClose }: BookingD
                 </div>
               </div>
 
+              <div className="rounded-2xl border border-border/60 bg-background p-4 text-sm text-muted-foreground">
+                <div className="space-y-1">
+                  <p>
+                    <span className="font-medium text-foreground">Client:</span> {booking.client.name}
+                    {booking.client.email ? ` (${booking.client.email})` : ""}
+                  </p>
+                  <p>
+                    <span className="font-medium text-foreground">Owner:</span> {booking.owner.name}
+                  </p>
+                </div>
+              </div>
+
               <div className="space-y-3 rounded-2xl border border-border/60 bg-background p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
                   Message History
@@ -126,7 +127,7 @@ export default function BookingDetailsModal({ booking, open, onClose }: BookingD
                     <p className="text-sm text-muted-foreground">No messages available for this booking.</p>
                   ) : (
                     thread.map((item) => {
-                      const isClient = item.role === "client"
+                      const isClient = item.sender_role === "client"
 
                       return (
                         <div key={item.id} className={`flex ${isClient ? "justify-end" : "justify-start"}`}>
@@ -143,8 +144,8 @@ export default function BookingDetailsModal({ booking, open, onClose }: BookingD
                                 isClient ? "text-primary-foreground/70" : "text-muted-foreground"
                               }`}
                             >
-                              {item.role === "client" ? "Client" : "Owner"}
-                              {item.createdAt ? ` • ${formatMessageTime(item.createdAt)}` : ""}
+                              {item.sender_role === "client" ? "Client" : "Owner"}
+                              {item.created_at ? ` • ${formatMessageTime(item.created_at)}` : ""}
                             </p>
                           </div>
                         </div>

@@ -4,7 +4,9 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { supabaseClient } from "@/lib/supabaseClient"
-import InquiryDetailsModal, { type InquiryItem } from "@/components/client/InquiryDetailsModal"
+import InquiryDetailsModal from "@/components/client/InquiryDetailsModal"
+import { getInquiryDetails } from "@/lib/services/details/client"
+import type { InquiryDetails } from "@/lib/services/details/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -56,7 +58,9 @@ export default function OwnerInquiriesContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionLoadingById, setActionLoadingById] = useState<Record<string, boolean>>({})
-  const [selectedInquiry, setSelectedInquiry] = useState<InquiryItem | null>(null)
+  const [selectedInquiry, setSelectedInquiry] = useState<InquiryDetails | null>(null)
+  const [openingInquiryId, setOpeningInquiryId] = useState<string | null>(null)
+  const [detailsError, setDetailsError] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -154,16 +158,35 @@ export default function OwnerInquiriesContent() {
     }
   }
 
-  function handleInquiryUpdated(nextInquiry: InquiryItem) {
+  async function handleOpen(inquiryId: string) {
+    setOpeningInquiryId(inquiryId)
+    setDetailsError(null)
+
+    try {
+      const inquiry = await getInquiryDetails(inquiryId, "owner")
+      setSelectedInquiry(inquiry)
+    } catch (detailsFetchError: unknown) {
+      const message =
+        detailsFetchError instanceof Error
+          ? detailsFetchError.message
+          : "Failed to load inquiry details"
+      setDetailsError(message)
+      toast.error("Unable to load inquiry details", { description: message })
+    } finally {
+      setOpeningInquiryId(null)
+    }
+  }
+
+  function handleInquiryUpdated(nextInquiry: InquiryDetails) {
     setInquiries((prev) =>
       prev.map((item) =>
         item.id === nextInquiry.id
           ? {
               ...item,
               status: nextInquiry.status,
-              message: nextInquiry.message,
+              message: nextInquiry.messages.at(-1)?.message ?? item.message,
               created_at: nextInquiry.created_at,
-              venue_name: nextInquiry.venue_name,
+              venue_name: nextInquiry.venue.name,
               date: nextInquiry.date ?? item.date,
               pax: nextInquiry.pax ?? item.pax,
             }
@@ -244,10 +267,10 @@ export default function OwnerInquiriesContent() {
                       type="button"
                       variant="outline"
                       className="rounded-full border-border/60"
-                      onClick={() => setSelectedInquiry(inquiry)}
-                      disabled={isLoadingAction}
+                      onClick={() => void handleOpen(inquiry.id)}
+                      disabled={isLoadingAction || openingInquiryId === inquiry.id}
                     >
-                      View Details
+                      {openingInquiryId === inquiry.id ? "Loading..." : "View Details"}
                     </Button>
                   </div>
                 </CardContent>
@@ -263,6 +286,7 @@ export default function OwnerInquiriesContent() {
           open={Boolean(selectedInquiry)}
           onClose={() => setSelectedInquiry(null)}
           role="owner"
+          error={detailsError}
           onInquiryUpdated={handleInquiryUpdated}
           onOwnerStatusChange={handleAction}
         />
