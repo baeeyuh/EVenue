@@ -66,7 +66,7 @@ export default function BaseNavBar({
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/95 backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="flex flex-col gap-3 py-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
+        <div className="flex flex-col gap-3 py-2.5 sm:py-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
           {/* Top row on mobile / Left on desktop */}
           <div className="flex items-center justify-between lg:flex-none">
             <Link href={homeHref} className="shrink-0">
@@ -76,7 +76,7 @@ export default function BaseNavBar({
                 width={160}
                 height={160}
                 className="object-contain"
-                style={{ width: "auto", height: "2.5rem" }}
+                style={{ width: "auto", height: "2.2rem" }}
               />
             </Link>
 
@@ -130,18 +130,22 @@ export default function BaseNavBar({
           </div>
 
           {/* Middle nav */}
-         <nav className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-2 border-t border-border/50 pt-3 lg:flex-1 lg:flex-nowrap lg:justify-center lg:gap-x-8 lg:border-t-0 lg:pt-0">
+     <nav className="grid w-full grid-flow-col auto-cols-fr items-center border-t border-border/50 pt-2.5 sm:flex sm:w-auto sm:flex-wrap sm:justify-center sm:gap-x-2.5 sm:gap-y-2 sm:pt-3 lg:flex-1 lg:flex-nowrap lg:justify-center lg:gap-x-8 lg:border-t-0 lg:pt-0">
             {navItems.map(({ href, label, icon: Icon, isActive }) => (
             <Link
             key={href}
             href={href}
+            aria-label={label}
+            title={label}
             className={cn(
-                "flex items-center gap-1.5 text-[12px] transition-colors sm:text-[13px] lg:text-sm",
-                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+        "flex min-h-10 items-center justify-center rounded-full px-2 py-2 text-[11px] transition-colors sm:min-h-0 sm:gap-1.5 sm:px-0 sm:py-0 sm:text-[13px] lg:text-sm",
+                isActive
+                  ? "bg-primary/10 text-primary sm:bg-transparent"
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground sm:hover:bg-transparent"
             )}
             >
-            <Icon className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-            <span className="font-serif leading-none">{label}</span>
+            <Icon className="h-4.5 w-4.5 sm:h-4 sm:w-4 lg:h-4.5 lg:w-4.5" />
+            <span className="hidden font-serif leading-none sm:inline">{label}</span>
             </Link>
         ))}
         </nav>

@@ -100,11 +100,11 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="flex h-full flex-col justify-center space-y-6">
+    <div className="flex h-full flex-col justify-center space-y-5 sm:space-y-6">
       <AuthTabBar active="login" />
 
       <div>
-        <h1 className="font-serif text-3xl font-light">Welcome back.</h1>
+        <h1 className="font-serif text-2xl font-light sm:text-3xl">Welcome back.</h1>
         <p className="mt-1 text-xs text-muted-foreground">
           Log in to continue to EVenue
         </p>

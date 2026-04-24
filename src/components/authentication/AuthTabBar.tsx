@@ -6,13 +6,13 @@ interface AuthTabBarProps {
 
 export default function AuthTabBar({ active }: AuthTabBarProps) {
   return (
-    <div className="border-b border-border/60 pb-2 flex gap-6">
+    <div className="flex gap-5 border-b border-border/60 pb-2 sm:gap-6">
       <Link
         href="/authentication/login"
         className={
           active === "login"
-            ? "text-sm font-medium border-b-2 border-foreground pb-2 -mb-2"
-            : "text-sm text-muted-foreground hover:text-foreground transition-colors pb-2"
+            ? "border-b-2 border-foreground pb-2 -mb-2 text-[13px] font-medium sm:text-sm"
+            : "pb-2 text-[13px] text-muted-foreground transition-colors hover:text-foreground sm:text-sm"
         }
       >
         Log In
@@ -21,8 +21,8 @@ export default function AuthTabBar({ active }: AuthTabBarProps) {
         href="/authentication/signup"
         className={
           active === "signup"
-            ? "text-sm font-medium border-b-2 border-foreground pb-2 -mb-2"
-            : "text-sm text-muted-foreground hover:text-foreground transition-colors pb-2"
+            ? "border-b-2 border-foreground pb-2 -mb-2 text-[13px] font-medium sm:text-sm"
+            : "pb-2 text-[13px] text-muted-foreground transition-colors hover:text-foreground sm:text-sm"
         }
       >
         Sign Up
