@@ -296,16 +296,16 @@ export default function InquiryDetailsModal({
                     <p className="text-sm text-muted-foreground">No messages yet.</p>
                   ) : (
                     inquiry.messages.map((item) => {
-                      const isClient = item.sender_role === "client"
+                      const isOwnMessage = item.sender_role === role
 
                       return (
                         <div
                           key={item.id}
-                          className={`flex ${isClient ? "justify-end" : "justify-start"}`}
+                          className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
                         >
                           <div
                             className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
-                              isClient
+                              isOwnMessage
                                 ? "bg-primary text-primary-foreground"
                                 : "border border-border/60 bg-background text-foreground"
                             }`}
@@ -313,7 +313,7 @@ export default function InquiryDetailsModal({
                             <p className="whitespace-pre-wrap">{item.message}</p>
                             <p
                               className={`mt-1 text-[11px] ${
-                                isClient ? "text-primary-foreground/70" : "text-muted-foreground"
+                                isOwnMessage ? "text-primary-foreground/70" : "text-muted-foreground"
                               }`}
                             >
                               {item.sender_role === "client" ? "Client" : "Owner"}
