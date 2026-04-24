@@ -141,7 +141,6 @@ export default function OwnerVenuesContent() {
                     id={venue.id}
                     organizationId=""
                     name={venue.name}
-                    organizationName={venue.name}
                     location={venue.location ?? "Location not set"}
                     capacity={venue.capacity ?? 0}
                     price={venue.price !== null ? `₱${Number(venue.price).toLocaleString()}` : "Price on request"}
