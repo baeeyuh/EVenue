@@ -58,7 +58,7 @@ function organizationInitials(name: string): string {
 export async function fetchVenues(filters: Partial<VenueFilters> = {}): Promise<Venue[]> {
   const resolved = { ...DEFAULT_VENUE_FILTERS, ...filters }
 
-  const { data, error } = await supabaseServer.rpc("filter_venues", {
+  const rpcResult = await supabaseServer.rpc("filter_venues", {
     min_budget: resolved.minBudget,
     max_budget: resolved.maxBudget,
     min_pax: resolved.minPax,
@@ -68,12 +68,45 @@ export async function fetchVenues(filters: Partial<VenueFilters> = {}): Promise<
     amenities: resolved.amenities.length > 0 ? resolved.amenities : null,
   })
 
-  if (error) {
-    console.error(error)
-    throw new Error("Failed to fetch venues")
+  let venueRows: VenueRpcRow[] = (rpcResult.data ?? []) as VenueRpcRow[]
+
+  if (rpcResult.error) {
+    console.error(rpcResult.error)
+
+    let viewQuery = supabaseServer
+      .from("venue_with_amenities")
+      .select("id, organization_id, name, location, capacity, price, image, rating, review_count, description, amenities, venue_type, is_available, created_at")
+      .gte("price", resolved.minBudget)
+      .lte("price", resolved.maxBudget)
+      .gte("capacity", resolved.minPax)
+      .lte("capacity", resolved.maxPax)
+
+    if (resolved.location) {
+      viewQuery = viewQuery.ilike("location", `%${resolved.location}%`)
+    }
+
+    if (resolved.search) {
+      const escapedSearch = resolved.search.replace(/,/g, "")
+      viewQuery = viewQuery.or(`name.ilike.%${escapedSearch}%,location.ilike.%${escapedSearch}%,description.ilike.%${escapedSearch}%`)
+    }
+
+    if (resolved.amenities.length > 0) {
+      viewQuery = viewQuery.contains("amenities", resolved.amenities)
+    }
+
+    const viewResult = await viewQuery.order("created_at", { ascending: false })
+
+    if (viewResult.error) {
+      console.error(viewResult.error)
+      throw new Error("Failed to fetch venues")
+    }
+
+    venueRows = ((viewResult.data ?? []) as VenueRpcRow[]).map((row) => ({
+      ...row,
+      additional_info: null,
+    }))
   }
 
-  const venueRows = (data ?? []) as VenueRpcRow[]
   const organizationIds = Array.from(
     new Set(venueRows.map((venue) => venue.organization_id).filter((id): id is string => Boolean(id))),
   )
