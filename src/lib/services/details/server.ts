@@ -127,6 +127,13 @@ async function tryGetRelationalInquiryDetails(client: SupabaseClient, inquiryId:
   const venue = pickOne(row.venue)
   const clientProfile = pickOne(row.client)
   const ownerProfile = pickOne(row.owner)
+  const clientId = row.client_id ?? row.user_id ?? null
+  const ownerId = row.owner_id ?? null
+
+  const [fallbackClientProfile, fallbackOwnerProfile] = await Promise.all([
+    !clientProfile && clientId ? fetchProfile(client, clientId) : Promise.resolve(null),
+    !ownerProfile && ownerId ? fetchProfile(client, ownerId) : Promise.resolve(null),
+  ])
 
   const fallbackMessages = getInquiryThread(row.message, row.created_at).map((message) => ({
     id: message.id,
@@ -164,14 +171,14 @@ async function tryGetRelationalInquiryDetails(client: SupabaseClient, inquiryId:
         price: venue?.price ?? null,
       },
       client: {
-        id: clientProfile?.id ?? row.client_id,
-        name: buildName(clientProfile),
-        email: clientProfile?.email ?? null,
+        id: fallbackClientProfile?.id ?? clientProfile?.id ?? clientId,
+        name: fallbackClientProfile?.name ?? buildName(clientProfile),
+        email: fallbackClientProfile?.email ?? clientProfile?.email ?? null,
       },
       owner: {
-        id: ownerProfile?.id ?? row.owner_id,
-        name: buildName(ownerProfile),
-        email: ownerProfile?.email ?? null,
+        id: fallbackOwnerProfile?.id ?? ownerProfile?.id ?? ownerId,
+        name: fallbackOwnerProfile?.name ?? buildName(ownerProfile),
+        email: fallbackOwnerProfile?.email ?? ownerProfile?.email ?? null,
       },
       messages: messages.sort(
         (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
