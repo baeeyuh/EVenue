@@ -194,10 +194,16 @@ export function parseInquiryMessage(message: string): ParsedInquiryMessage {
 export function isMissingColumnError(error: unknown, columnName: string) {
   if (!error || typeof error !== "object") return false
 
-  const candidate = error as { code?: string; message?: string }
+  const candidate = error as { code?: string; message?: string; details?: string; hint?: string }
+  const haystack = [candidate.message, candidate.details, candidate.hint]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ")
+    .toLowerCase()
+
+  const mentionsColumn = haystack.includes(columnName.toLowerCase())
+
   return (
-    candidate.code === "42703" &&
-    typeof candidate.message === "string" &&
-    candidate.message.toLowerCase().includes(columnName.toLowerCase())
+    mentionsColumn &&
+    (candidate.code === "42703" || candidate.code === "PGRST204")
   )
 }
