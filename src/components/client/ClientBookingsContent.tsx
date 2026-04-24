@@ -2,15 +2,24 @@
 
 import { useEffect, useState } from "react"
 import { supabaseClient } from "@/lib/supabaseClient"
-import { CalendarDays, Clock, ArrowUpRight } from "lucide-react"
+import { CalendarDays, Clock } from "lucide-react"
+import BookingDetailsModal from "@/components/common/BookingDetailsModal"
+import { getBookingDetails } from "@/lib/services/details/client"
+import type { BookingDetails } from "@/lib/services/details/types"
+import { toast } from "sonner"
 
 type BookingItem = {
   id: string
   code: string | null
   status: string | null
+  inquiry_id: string | null
   start_date: string
   end_date: string | null
+  event_date: string | null
+  guest_count: number | null
+  inquiry_message: string | null
   venue_name: string
+  created_at: string | null
 }
 
 function formatBookingDateLong(startDate: string) {
@@ -49,6 +58,8 @@ export default function ClientBookingsContent() {
   const [bookings, setBookings] = useState<BookingItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedBooking, setSelectedBooking] = useState<BookingDetails | null>(null)
+  const [openingBookingId, setOpeningBookingId] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -91,8 +102,26 @@ export default function ClientBookingsContent() {
     return () => { active = false }
   }, [])
 
+  async function handleOpen(bookingId: string) {
+    setOpeningBookingId(bookingId)
+
+    try {
+      const booking = await getBookingDetails(bookingId, "client")
+      setSelectedBooking(booking)
+    } catch (detailsFetchError: unknown) {
+      const message =
+        detailsFetchError instanceof Error
+          ? detailsFetchError.message
+          : "Failed to load booking details"
+      toast.error("Unable to load booking details", { description: message })
+    } finally {
+      setOpeningBookingId(null)
+    }
+  }
+
   return (
-    <main style={{ minHeight: "100vh", background: "#fafaf8", color: "#1a1a1a", fontFamily: "var(--font-sans, sans-serif)" }}>
+    <>
+      <main style={{ minHeight: "100vh", background: "#fafaf8", color: "#1a1a1a", fontFamily: "var(--font-sans, sans-serif)" }}>
 
       {/* Page Header */}
       <section style={{ borderBottom: "1px solid #e8e6e0", background: "#ffffff" }}>
@@ -185,14 +214,26 @@ export default function ClientBookingsContent() {
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = "#f0f3f8"; e.currentTarget.style.borderColor = "#1d3557" }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "#c8cdd8" }}
+                  onClick={() => void handleOpen(booking.id)}
+                  disabled={openingBookingId === booking.id}
                 >
-                  View Details <ArrowUpRight size={13} />
+                  {openingBookingId === booking.id ? "Loading..." : "View Details"}
                 </button>
               </div>
             </div>
           ))}
         </div>
       </section>
-    </main>
+
+      </main>
+
+      {selectedBooking && (
+        <BookingDetailsModal
+          booking={selectedBooking}
+          open={Boolean(selectedBooking)}
+          onClose={() => setSelectedBooking(null)}
+        />
+      )}
+    </>
   )
 }

@@ -1,13 +1,19 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import { supabaseClient } from "@/lib/supabaseClient"
+import BookingDetailsModal from "@/components/common/BookingDetailsModal"
+import { getBookingDetails } from "@/lib/services/details/client"
+import type { BookingDetails } from "@/lib/services/details/types"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 type OwnerBooking = {
   id: string
   code: string | null
+  inquiry_id: string | null
   venue_id: string | null
   venue_name: string
   client_id: string | null
@@ -18,6 +24,7 @@ type OwnerBooking = {
   status: string | null
   price: number | null
   created_at: string | null
+  inquiry_message: string | null
 }
 
 function formatDate(value: string | null) {
@@ -52,6 +59,8 @@ export default function OwnerBookingsContent() {
   const [bookings, setBookings] = useState<OwnerBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedBooking, setSelectedBooking] = useState<BookingDetails | null>(null)
+  const [openingBookingId, setOpeningBookingId] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -104,6 +113,23 @@ export default function OwnerBookingsContent() {
       active = false
     }
   }, [])
+
+  async function handleOpen(bookingId: string) {
+    setOpeningBookingId(bookingId)
+
+    try {
+      const booking = await getBookingDetails(bookingId, "owner")
+      setSelectedBooking(booking)
+    } catch (detailsFetchError: unknown) {
+      const message =
+        detailsFetchError instanceof Error
+          ? detailsFetchError.message
+          : "Failed to load booking details"
+      toast.error("Unable to load booking details", { description: message })
+    } finally {
+      setOpeningBookingId(null)
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#fafaf8] text-foreground">
@@ -163,10 +189,30 @@ export default function OwnerBookingsContent() {
                     Revenue: ₱{Number(booking.price ?? 0).toLocaleString()}
                   </span>
                 </div>
+
+                <div className="flex justify-end pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-full border-border/60"
+                    onClick={() => void handleOpen(booking.id)}
+                    disabled={openingBookingId === booking.id}
+                  >
+                    {openingBookingId === booking.id ? "Loading..." : "View Details"}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
       </section>
+
+      {selectedBooking && (
+        <BookingDetailsModal
+          booking={selectedBooking}
+          open={Boolean(selectedBooking)}
+          onClose={() => setSelectedBooking(null)}
+        />
+      )}
     </main>
   )
 }
