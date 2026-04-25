@@ -66,6 +66,7 @@ export default function ClientInquiriesContent() {
   const [error, setError] = useState<string | null>(null)
 
   const [selectedInquiry, setSelectedInquiry] = useState<InquiryDetails | null>(null)
+  const [detailsCache, setDetailsCache] = useState<Record<string, InquiryDetails>>({})
   const [openingInquiryId, setOpeningInquiryId] = useState<string | null>(null)
   const [detailsError, setDetailsError] = useState<string | null>(null)
 
@@ -144,11 +145,20 @@ export default function ClientInquiriesContent() {
   }, [search, inquiries])
 
   async function handleViewInquiry(inquiryId: string) {
+    const cached = detailsCache[inquiryId]
+
+    if (cached) {
+      setDetailsError(null)
+      setSelectedInquiry(cached)
+      return
+    }
+
     setOpeningInquiryId(inquiryId)
     setDetailsError(null)
 
     try {
       const fullInquiry = await getInquiryDetails(inquiryId, "client")
+      setDetailsCache((prev) => ({ ...prev, [inquiryId]: fullInquiry }))
       setSelectedInquiry(fullInquiry)
     } catch (detailsFetchError: unknown) {
       const message =
@@ -224,6 +234,7 @@ export default function ClientInquiriesContent() {
           : item
       )
     )
+    setDetailsCache((prev) => ({ ...prev, [nextInquiry.id]: nextInquiry }))
     setSelectedInquiry(nextInquiry)
   }
 
@@ -260,7 +271,11 @@ export default function ClientInquiriesContent() {
           </div>
 
           {loading && (
-            <p className="text-sm text-muted-foreground">Loading inquiries…</p>
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="h-28 animate-pulse rounded-2xl bg-muted" />
+              ))}
+            </div>
           )}
 
           {error && !loading && (

@@ -11,7 +11,14 @@ export default function LoginFormClientOnly() {
   }, [])
 
   if (!mounted) {
-    return <div className="text-sm text-muted-foreground">Loading...</div>
+    return (
+      <div className="space-y-4">
+        <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+        <div className="h-10 w-full animate-pulse rounded bg-muted" />
+        <div className="h-10 w-full animate-pulse rounded bg-muted" />
+        <div className="h-10 w-full animate-pulse rounded-full bg-muted" />
+      </div>
+    )
   }
 
   return <LoginForm />

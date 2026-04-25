@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { getOwnerOrgIds } from "@/lib/services/owner/organizations"
-import { getInquiryThread, isMissingColumnError } from "@/lib/services/inquiries/shared"
+import { getInquiryThread, isMissingColumnError, parseInquiryMessage } from "@/lib/services/inquiries/shared"
 import type {
   BookingDetails,
   DetailMessage,
@@ -99,6 +99,80 @@ type RelationalInquiryRow = {
     sender_role: string | null
     created_at: string | null
   }> | null
+}
+
+type OwnerInquiryDetailsViewRow = {
+  id: string
+  status: string | null
+  created_at: string | null
+  venue_id: string | null
+  venue_name: string | null
+  location: string | null
+  organization_id: string | null
+  client_id: string | null
+  client_name: string | null
+  client_email: string | null
+  owner_name?: string | null
+  owner_email?: string | null
+  message: string | null
+  date: string | null
+  pax: number | null
+  messages?: unknown
+}
+
+type OwnerBookingDetailsViewRow = {
+  id: string
+  code: string | null
+  status: string | null
+  created_at: string | null
+  event_date: string | null
+  end_date: string | null
+  venue_id: string | null
+  venue_name: string | null
+  location: string | null
+  organization_id: string | null
+  client_id: string | null
+  client_name: string | null
+  client_email: string | null
+  owner_name?: string | null
+  owner_email?: string | null
+  messages?: unknown
+}
+
+type ClientInquiryDetailsViewRow = {
+  id: string
+  status: string | null
+  created_at: string | null
+  venue_id: string | null
+  venue_name: string | null
+  location: string | null
+  client_id: string | null
+  client_name: string | null
+  client_email: string | null
+  owner_name?: string | null
+  owner_email?: string | null
+  message: string | null
+  date: string | null
+  pax: number | null
+  messages?: unknown
+}
+
+type ClientBookingDetailsViewRow = {
+  id: string
+  code: string | null
+  status: string | null
+  created_at: string | null
+  event_date: string | null
+  end_date: string | null
+  venue_id: string | null
+  venue_name: string | null
+  location: string | null
+  client_id: string | null
+  client_name: string | null
+  client_email: string | null
+  owner_name?: string | null
+  owner_email?: string | null
+  messages?: unknown
 }
 
 function pickOne<T>(value: T | T[] | null | undefined): T | null {
@@ -266,6 +340,59 @@ function fallbackMessagesFromInquiry(inquiry: InquiryBaseRow): DetailMessage[] {
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 }
 
+function parseViewMessages(value: unknown): DetailMessage[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .map((item, index) => {
+      if (!item || typeof item !== "object") {
+        return null
+      }
+
+      const candidate = item as {
+        id?: unknown
+        message?: unknown
+        sender_role?: unknown
+        created_at?: unknown
+      }
+
+      const senderRole = candidate.sender_role === "owner" ? "owner" : "client"
+      const rawMessage = typeof candidate.message === "string" ? candidate.message : ""
+      const normalizedMessage = rawMessage.includes("Message:")
+        ? parseInquiryMessage(rawMessage).actualMessage
+        : rawMessage
+
+      return {
+        id:
+          typeof candidate.id === "string" && candidate.id.trim().length > 0
+            ? candidate.id
+            : `msg-${index}`,
+        message: normalizedMessage,
+        sender_role: senderRole,
+        created_at:
+          typeof candidate.created_at === "string" && candidate.created_at.trim().length > 0
+            ? candidate.created_at
+            : new Date(0).toISOString(),
+      } satisfies DetailMessage
+    })
+    .filter((item): item is DetailMessage => Boolean(item))
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+}
+
+function isMissingRelationError(error: unknown) {
+  if (!error || typeof error !== "object") return false
+
+  const candidate = error as { code?: string; message?: string; details?: string; hint?: string }
+  const haystack = [candidate.message, candidate.details, candidate.hint]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ")
+    .toLowerCase()
+
+  return candidate.code === "42P01" || haystack.includes("does not exist")
+}
+
 async function fetchMessages(client: SupabaseClient, inquiry: InquiryBaseRow): Promise<DetailMessage[]> {
   const messageQuery = await client
     .from("inquiry_messages")
@@ -362,6 +489,59 @@ export async function getClientInquiryDetails(
   userId: string,
   inquiryId: string
 ): Promise<InquiryDetails | null> {
+  const viewLookup = await client
+    .from("client_inquiry_details_view")
+    .select("*")
+    .eq("id", inquiryId)
+    .eq("client_id", userId)
+    .maybeSingle()
+
+  if (!viewLookup.error && viewLookup.data) {
+    const row = viewLookup.data as ClientInquiryDetailsViewRow
+    const fallbackMessage = row.message ?? ""
+    const fallbackTimestamp = row.created_at ?? new Date(0).toISOString()
+    const messages = parseViewMessages(row.messages)
+
+    return {
+      id: row.id,
+      date: row.date,
+      pax: row.pax,
+      status: row.status,
+      created_at: row.created_at,
+      venue: {
+        id: row.venue_id,
+        name: row.venue_name ?? "Unknown venue",
+        location: row.location ?? null,
+        price: null,
+      },
+      client: {
+        id: row.client_id,
+        name: row.client_name ?? "Unknown",
+        email: row.client_email ?? null,
+      },
+      owner: {
+        id: null,
+        name: row.owner_name ?? "Unknown",
+        email: row.owner_email ?? null,
+      },
+      messages:
+        messages.length > 0
+          ? messages
+          : getInquiryThread(fallbackMessage, fallbackTimestamp)
+              .map((item) => ({
+                id: item.id,
+                message: item.message,
+                sender_role: item.role,
+                created_at: item.createdAt,
+              }))
+              .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+    }
+  }
+
+  if (viewLookup.error && !isMissingRelationError(viewLookup.error)) {
+    throw new Error("Failed to fetch inquiry details")
+  }
+
   const relationalDetails = await tryGetRelationalInquiryDetails(client, inquiryId)
 
   if (relationalDetails) {
@@ -397,45 +577,61 @@ export async function getOwnerInquiryDetails(
 
   if (orgIds.length === 0) return null
 
-  const relationalDetails = await tryGetRelationalInquiryDetails(client, inquiryId)
-
-  if (relationalDetails?.access.venue_id) {
-    const venueOrgLookup = await client
-      .from("venues")
-      .select("organization_id")
-      .eq("id", relationalDetails.access.venue_id)
-      .maybeSingle()
-
-    const organizationId =
-      (venueOrgLookup.data as { organization_id?: string | null } | null)?.organization_id ?? null
-
-    if (!organizationId || !orgIds.includes(organizationId)) {
-      return null
-    }
-
-    return relationalDetails.details
-  }
-
-  const inquiry = await fetchInquiryBase(client, inquiryId)
-
-  if (!inquiry) return null
-
-  if (!inquiry.venue_id) return null
-
-  const venueOrgLookup = await client
-    .from("venues")
-    .select("organization_id")
-    .eq("id", inquiry.venue_id)
+  const viewLookup = await client
+    .from("owner_inquiry_details_view")
+    .select("*")
+    .eq("id", inquiryId)
+    .in("organization_id", orgIds)
     .maybeSingle()
 
-  const organizationId =
-    (venueOrgLookup.data as { organization_id?: string | null } | null)?.organization_id ?? null
+  if (viewLookup.error) {
+    throw new Error("Failed to fetch inquiry details")
+  }
 
-  if (!organizationId || !orgIds.includes(organizationId)) {
+  const row = (viewLookup.data as OwnerInquiryDetailsViewRow | null) ?? null
+
+  if (!row) {
     return null
   }
 
-  return buildInquiryDetails(client, inquiry)
+  const fallbackMessage = row.message ?? ""
+  const fallbackTimestamp = row.created_at ?? new Date(0).toISOString()
+  const messages = parseViewMessages(row.messages)
+
+  return {
+    id: row.id,
+    date: row.date,
+    pax: row.pax,
+    status: row.status,
+    created_at: row.created_at,
+    venue: {
+      id: row.venue_id,
+      name: row.venue_name ?? "Unknown venue",
+      location: row.location ?? null,
+      price: null,
+    },
+    client: {
+      id: row.client_id,
+      name: row.client_name ?? "Unknown",
+      email: row.client_email ?? null,
+    },
+    owner: {
+      id: ownerId,
+      name: row.owner_name ?? "Unknown",
+      email: row.owner_email ?? null,
+    },
+    messages:
+      messages.length > 0
+        ? messages
+        : getInquiryThread(fallbackMessage, fallbackTimestamp)
+            .map((item) => ({
+              id: item.id,
+              message: item.message,
+              sender_role: item.role,
+              created_at: item.createdAt,
+            }))
+            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+  }
 }
 
 async function fetchBookingBase(client: SupabaseClient, bookingId: string): Promise<BookingBaseRow | null> {
@@ -511,6 +707,69 @@ export async function getClientBookingDetails(
   userId: string,
   bookingId: string
 ): Promise<BookingDetails | null> {
+  const viewLookup = await client
+    .from("client_booking_details_view")
+    .select("*")
+    .eq("id", bookingId)
+    .eq("client_id", userId)
+    .maybeSingle()
+
+  if (!viewLookup.error && viewLookup.data) {
+    const row = viewLookup.data as ClientBookingDetailsViewRow
+    const thread = parseViewMessages(row.messages)
+
+    const venue: DetailVenue = {
+      id: row.venue_id,
+      name: row.venue_name ?? "Unknown venue",
+      location: row.location ?? null,
+      price: null,
+    }
+
+    const detailClient: DetailPerson = {
+      id: row.client_id,
+      name: row.client_name ?? "Unknown",
+      email: row.client_email ?? null,
+    }
+
+    const owner: DetailPerson = {
+      id: null,
+      name: row.owner_name ?? "Unknown",
+      email: row.owner_email ?? null,
+    }
+
+    const inquiry: InquiryDetails = {
+      id: row.id,
+      date: row.event_date,
+      pax: null,
+      status: row.status,
+      created_at: row.created_at,
+      venue,
+      client: detailClient,
+      owner,
+      messages: thread,
+    }
+
+    return {
+      id: row.id,
+      code: row.code,
+      status: row.status,
+      created_at: row.created_at,
+      event_date: row.event_date,
+      start_date: row.event_date,
+      end_date: row.end_date,
+      guest_count: null,
+      price: null,
+      venue,
+      client: detailClient,
+      owner,
+      inquiry,
+    }
+  }
+
+  if (viewLookup.error && !isMissingRelationError(viewLookup.error)) {
+    throw new Error("Failed to fetch booking details")
+  }
+
   const booking = await fetchBookingBase(client, bookingId)
 
   if (!booking) return null
@@ -529,28 +788,72 @@ export async function getOwnerBookingDetails(
   ownerId: string,
   bookingId: string
 ): Promise<BookingDetails | null> {
-  const booking = await fetchBookingBase(client, bookingId)
-
-  if (!booking) return null
-
-  if (!booking.venue_id) return null
-
   const orgIds = await getOwnerOrgIds(client, ownerId)
 
   if (orgIds.length === 0) return null
 
-  const venueOrgLookup = await client
-    .from("venues")
-    .select("organization_id")
-    .eq("id", booking.venue_id)
+  const viewLookup = await client
+    .from("owner_booking_details_view")
+    .select("*")
+    .eq("id", bookingId)
+    .in("organization_id", orgIds)
     .maybeSingle()
 
-  const organizationId =
-    (venueOrgLookup.data as { organization_id?: string | null } | null)?.organization_id ?? null
+  if (viewLookup.error) {
+    throw new Error("Failed to fetch booking details")
+  }
 
-  if (!organizationId || !orgIds.includes(organizationId)) {
+  const row = (viewLookup.data as OwnerBookingDetailsViewRow | null) ?? null
+
+  if (!row) {
     return null
   }
 
-  return buildBookingDetails(client, booking)
+  const owner: DetailPerson = {
+    id: ownerId,
+    name: row.owner_name ?? "Unknown",
+    email: row.owner_email ?? null,
+  }
+  const thread = parseViewMessages(row.messages)
+
+  const sharedVenue: DetailVenue = {
+    id: row.venue_id,
+    name: row.venue_name ?? "Unknown venue",
+    location: row.location ?? null,
+    price: null,
+  }
+
+  const sharedClient: DetailPerson = {
+    id: row.client_id,
+    name: row.client_name ?? "Unknown",
+    email: row.client_email ?? null,
+  }
+
+  const inquiry: InquiryDetails = {
+    id: row.id,
+    date: row.event_date,
+    pax: null,
+    status: row.status,
+    created_at: row.created_at,
+    venue: sharedVenue,
+    client: sharedClient,
+    owner,
+    messages: thread,
+  }
+
+  return {
+    id: row.id,
+    code: row.code,
+    status: row.status,
+    created_at: row.created_at,
+    event_date: row.event_date,
+    start_date: row.event_date,
+    end_date: row.end_date,
+    guest_count: inquiry.pax,
+    price: null,
+    venue: sharedVenue,
+    client: sharedClient,
+    owner,
+    inquiry,
+  }
 }

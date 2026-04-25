@@ -314,7 +314,13 @@ export default function OwnerVenueEditorContent({ mode, venueId }: OwnerVenueEdi
           </CardHeader>
 
           <CardContent className="space-y-5">
-            {loading && <p className="text-sm text-muted-foreground">Loading venue data...</p>}
+            {loading && (
+              <div className="space-y-3">
+                <div className="h-11 animate-pulse rounded-xl bg-muted" />
+                <div className="h-11 animate-pulse rounded-xl bg-muted" />
+                <div className="h-24 animate-pulse rounded-xl bg-muted" />
+              </div>
+            )}
             {error && <p className="text-sm text-destructive">{error}</p>}
 
             <div className="grid gap-4 md:grid-cols-2">

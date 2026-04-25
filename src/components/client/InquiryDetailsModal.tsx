@@ -234,7 +234,12 @@ export default function InquiryDetailsModal({
         </div>
 
         <div className="space-y-4 overflow-y-auto p-6">
-          {loading && <p className="text-sm text-muted-foreground">Loading details...</p>}
+          {loading && (
+            <div className="space-y-3">
+              <div className="h-16 animate-pulse rounded-xl bg-muted" />
+              <div className="h-24 animate-pulse rounded-xl bg-muted" />
+            </div>
+          )}
           {error && !loading && <p className="text-sm text-destructive">{error}</p>}
 
           {inquiry && !loading && !error && (

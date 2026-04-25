@@ -114,7 +114,11 @@ export default function OwnerDashboardContent() {
 
       <section className="mx-auto max-w-6xl px-6 py-10">
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Card key={index} className="h-40 animate-pulse border-border/60 bg-muted" />
+            ))}
+          </div>
         ) : error ? (
           <p className="text-sm text-destructive">{error}</p>
         ) : (

@@ -59,6 +59,7 @@ export default function ClientBookingsContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedBooking, setSelectedBooking] = useState<BookingDetails | null>(null)
+  const [detailsCache, setDetailsCache] = useState<Record<string, BookingDetails>>({})
   const [openingBookingId, setOpeningBookingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -103,10 +104,18 @@ export default function ClientBookingsContent() {
   }, [])
 
   async function handleOpen(bookingId: string) {
+    const cached = detailsCache[bookingId]
+
+    if (cached) {
+      setSelectedBooking(cached)
+      return
+    }
+
     setOpeningBookingId(bookingId)
 
     try {
       const booking = await getBookingDetails(bookingId, "client")
+      setDetailsCache((prev) => ({ ...prev, [bookingId]: booking }))
       setSelectedBooking(booking)
     } catch (detailsFetchError: unknown) {
       const message =
@@ -142,7 +151,19 @@ export default function ClientBookingsContent() {
       <section style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
 
         {loading && (
-          <p style={{ fontSize: 14, color: "#9a9a9a" }}>Loading bookings…</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                style={{
+                  height: 112,
+                  borderRadius: 16,
+                  background: "#eceae4",
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }}
+              />
+            ))}
+          </div>
         )}
         {error && !loading && (
           <p style={{ fontSize: 14, color: "#c0392b" }}>{error}</p>
@@ -155,7 +176,7 @@ export default function ClientBookingsContent() {
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {bookings.map((booking) => (
+          {!loading && bookings.map((booking) => (
             <div
               key={booking.id}
               style={{

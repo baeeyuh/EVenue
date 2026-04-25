@@ -200,7 +200,19 @@ export default function ClientSavedContent() {
       <section style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
 
         {loading && (
-          <p style={{ fontSize: 14, color: "#9a9a9a" }}>Loading saved items…</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: 16 }}>
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                style={{
+                  height: 208,
+                  borderRadius: 16,
+                  background: "#eceae4",
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }}
+              />
+            ))}
+          </div>
         )}
         {error && !loading && (
           <p style={{ fontSize: 14, color: "#c0392b" }}>{error}</p>
@@ -213,7 +225,7 @@ export default function ClientSavedContent() {
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: 16 }}>
-          {savedItems.map((item) => {
+          {!loading && savedItems.map((item) => {
             return (
             <div
               key={item.id}
