@@ -1,9 +1,12 @@
 "use client"
 
-import { CalendarDays, Users } from "lucide-react"
+import Image from "next/image"
+import { useState } from "react"
+import { CalendarDays, ChevronDown, Tag, Users } from "lucide-react"
 
 import type { BookingDetails } from "@/lib/services/details/types"
 import { Badge } from "@/components/ui/badge"
+import { StarRating } from "@/components/common/StarRating"
 import {
   Dialog,
   DialogContent,
@@ -60,15 +63,41 @@ function getStatusLabel(status: string | null) {
   return `${status.charAt(0).toUpperCase()}${status.slice(1).toLowerCase()}`
 }
 
+type ToggleSectionProps = {
+  title: string
+  defaultOpen?: boolean
+  children: React.ReactNode
+}
+
+function ToggleSection({ title, defaultOpen = true, children }: ToggleSectionProps) {
+  const [open, setOpen] = useState(defaultOpen)
+
+  return (
+    <section className="rounded-2xl border border-border/60 bg-background">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between px-4 py-3 text-left"
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">{title}</p>
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && <div className="space-y-3 border-t border-border/60 p-4">{children}</div>}
+    </section>
+  )
+}
+
 export default function BookingDetailsModal({ booking, open, onClose }: BookingDetailsModalProps) {
   const eventDate = booking?.event_date ?? booking?.start_date ?? null
   const guestCount = booking?.guest_count ?? booking?.inquiry?.pax ?? null
   const thread = booking?.inquiry?.messages ?? []
+  const venueImage = booking?.venue.image?.trim() || "/images/placeholder-venue.jpg"
+  const venueAmenities = booking?.venue.amenities ?? []
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-hidden rounded-3xl border-border/60 p-0">
-        <div className="border-b border-border/60 bg-background px-6 py-5">
+      <DialogContent className="flex h-[92dvh] w-[calc(100%-1rem)] max-h-[92dvh] max-w-2xl flex-col gap-0 overflow-hidden rounded-2xl border-border/60 p-0 sm:h-[86vh] sm:max-h-[86vh] sm:rounded-3xl">
+        <div className="shrink-0 border-b border-border/60 bg-background px-4 py-4 sm:px-6 sm:py-5">
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl font-light">View Details</DialogTitle>
             <DialogDescription>
@@ -77,7 +106,7 @@ export default function BookingDetailsModal({ booking, open, onClose }: BookingD
           </DialogHeader>
         </div>
 
-        <div className="space-y-4 overflow-y-auto p-6">
+  <div className="no-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
           {booking && (
             <>
               <div className="rounded-2xl border border-border/60 bg-muted/25 p-4">
@@ -105,8 +134,73 @@ export default function BookingDetailsModal({ booking, open, onClose }: BookingD
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-border/60 bg-background p-4 text-sm text-muted-foreground">
-                <div className="space-y-1">
+              <ToggleSection title="Venue Details" defaultOpen>
+                <div className="relative h-44 overflow-hidden rounded-xl border border-border/60 sm:h-52">
+                  <Image src={venueImage} alt={booking.venue.name} fill className="object-cover" />
+                </div>
+
+                <StarRating
+                  rating={Number(booking.venue.rating ?? 0)}
+                  reviewCount={Number(booking.venue.review_count ?? 0)}
+                />
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Venue type</p>
+                    <p className="mt-1 text-sm text-foreground">{booking.venue.venue_type ?? "Not provided"}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Capacity</p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {typeof booking.venue.capacity === "number" ? `${booking.venue.capacity} pax` : "Not provided"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Starting price</p>
+                    <p className="mt-1 inline-flex items-center gap-1 text-sm text-foreground">
+                      <Tag className="h-3.5 w-3.5" />
+                      {typeof booking.venue.price === "number" ? `₱${booking.venue.price.toLocaleString()}` : "Not provided"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Availability</p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {booking.venue.is_available === null || booking.venue.is_available === undefined
+                        ? "Not set"
+                        : booking.venue.is_available
+                          ? "Available"
+                          : "Unavailable"}
+                    </p>
+                  </div>
+                </div>
+
+                {venueAmenities.length > 0 && (
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Amenities</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {venueAmenities.map((item) => (
+                        <Badge key={item} variant="secondary" className="rounded-full text-[11px] font-normal">
+                          {item}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(booking.venue.description || booking.venue.additional_info) && (
+                  <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3">
+                    {booking.venue.description && (
+                      <p className="text-sm text-muted-foreground">{booking.venue.description}</p>
+                    )}
+                    {booking.venue.additional_info && (
+                      <p className="text-sm text-muted-foreground">{booking.venue.additional_info}</p>
+                    )}
+                  </div>
+                )}
+              </ToggleSection>
+
+              <ToggleSection title="People" defaultOpen={false}>
+                <div className="space-y-1 text-sm text-muted-foreground">
                   <p>
                     <span className="font-medium text-foreground">Client:</span> {booking.client.name}
                     {booking.client.email ? ` (${booking.client.email})` : ""}
@@ -115,14 +209,10 @@ export default function BookingDetailsModal({ booking, open, onClose }: BookingD
                     <span className="font-medium text-foreground">Owner:</span> {booking.owner.name}
                   </p>
                 </div>
-              </div>
+              </ToggleSection>
 
-              <div className="space-y-3 rounded-2xl border border-border/60 bg-background p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                  Message History
-                </p>
-
-                <div className="max-h-70 space-y-3 overflow-y-auto rounded-xl border border-border/60 bg-muted/20 p-3">
+              <ToggleSection title="Message History" defaultOpen={false}>
+                <div className="no-scrollbar max-h-70 space-y-3 overflow-y-auto rounded-xl border border-border/60 bg-muted/20 p-3">
                   {thread.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No messages available for this booking.</p>
                   ) : (
@@ -153,7 +243,7 @@ export default function BookingDetailsModal({ booking, open, onClose }: BookingD
                     })
                   )}
                 </div>
-              </div>
+              </ToggleSection>
             </>
           )}
         </div>

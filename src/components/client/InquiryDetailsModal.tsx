@@ -1,7 +1,8 @@
 "use client"
 
+import Image from "next/image"
 import { useState } from "react"
-import { CalendarDays, Send, Users } from "lucide-react"
+import { CalendarDays, ChevronDown, Send, Tag, Users } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -12,6 +13,7 @@ import { sendMessage } from "@/lib/services/details/client"
 import type { DetailRole, InquiryDetails } from "@/lib/services/details/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { StarRating } from "@/components/common/StarRating"
 import { Input } from "@/components/ui/input"
 import {
   Dialog,
@@ -78,6 +80,30 @@ function formatMessageTime(value: string) {
   }).format(date)
 }
 
+type ToggleSectionProps = {
+  title: string
+  defaultOpen?: boolean
+  children: React.ReactNode
+}
+
+function ToggleSection({ title, defaultOpen = true, children }: ToggleSectionProps) {
+  const [open, setOpen] = useState(defaultOpen)
+
+  return (
+    <section className="rounded-2xl border border-border/60 bg-background">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between px-4 py-3 text-left"
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">{title}</p>
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && <div className="space-y-3 border-t border-border/60 p-4">{children}</div>}
+    </section>
+  )
+}
+
 export default function InquiryDetailsModal({
   inquiry,
   open,
@@ -95,6 +121,8 @@ export default function InquiryDetailsModal({
     null
   )
   const normalizedStatus = normalizeInquiryStatus(inquiry?.status)
+  const venueImage = inquiry?.venue.image?.trim() || "/images/placeholder-venue.jpg"
+  const venueAmenities = inquiry?.venue.amenities ?? []
 
   async function handleSendMessage() {
     if (!inquiry || sending) return
@@ -223,8 +251,8 @@ export default function InquiryDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-h-[88vh] max-w-3xl overflow-hidden rounded-3xl border-border/60 p-0">
-        <div className="border-b border-border/60 bg-background px-6 py-5">
+      <DialogContent className="flex h-[92dvh] w-[calc(100%-1rem)] max-h-[92dvh] max-w-3xl flex-col gap-0 overflow-hidden rounded-2xl border-border/60 p-0 sm:h-[88vh] sm:max-h-[88vh] sm:rounded-3xl">
+        <div className="shrink-0 border-b border-border/60 bg-background px-4 py-4 sm:px-6 sm:py-5">
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl font-light">View Details</DialogTitle>
             <DialogDescription>
@@ -233,7 +261,7 @@ export default function InquiryDetailsModal({
           </DialogHeader>
         </div>
 
-        <div className="space-y-4 overflow-y-auto p-6">
+  <div className="no-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
           {loading && (
             <div className="space-y-3">
               <div className="h-16 animate-pulse rounded-xl bg-muted" />
@@ -291,12 +319,73 @@ export default function InquiryDetailsModal({
                 )}
               </div>
 
-              <div className="space-y-3 rounded-2xl border border-border/60 bg-background p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                  Messages
-                </p>
+              <ToggleSection title="Venue Details" defaultOpen>
+                <div className="relative h-44 overflow-hidden rounded-xl border border-border/60 sm:h-52">
+                  <Image src={venueImage} alt={inquiry.venue.name} fill className="object-cover" />
+                </div>
 
-                <div className="max-h-70 space-y-3 overflow-y-auto rounded-xl border border-border/60 bg-muted/20 p-3">
+                <StarRating
+                  rating={Number(inquiry.venue.rating ?? 0)}
+                  reviewCount={Number(inquiry.venue.review_count ?? 0)}
+                />
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Venue type</p>
+                    <p className="mt-1 text-sm text-foreground">{inquiry.venue.venue_type ?? "Not provided"}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Capacity</p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {typeof inquiry.venue.capacity === "number" ? `${inquiry.venue.capacity} pax` : "Not provided"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Starting price</p>
+                    <p className="mt-1 inline-flex items-center gap-1 text-sm text-foreground">
+                      <Tag className="h-3.5 w-3.5" />
+                      {typeof inquiry.venue.price === "number" ? `₱${inquiry.venue.price.toLocaleString()}` : "Not provided"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Availability</p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {inquiry.venue.is_available === null || inquiry.venue.is_available === undefined
+                        ? "Not set"
+                        : inquiry.venue.is_available
+                          ? "Available"
+                          : "Unavailable"}
+                    </p>
+                  </div>
+                </div>
+
+                {venueAmenities.length > 0 && (
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Amenities</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {venueAmenities.map((item) => (
+                        <Badge key={item} variant="secondary" className="rounded-full text-[11px] font-normal">
+                          {item}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(inquiry.venue.description || inquiry.venue.additional_info) && (
+                  <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3">
+                    {inquiry.venue.description && (
+                      <p className="text-sm text-muted-foreground">{inquiry.venue.description}</p>
+                    )}
+                    {inquiry.venue.additional_info && (
+                      <p className="text-sm text-muted-foreground">{inquiry.venue.additional_info}</p>
+                    )}
+                  </div>
+                )}
+              </ToggleSection>
+
+              <ToggleSection title="Messages" defaultOpen={false}>
+                <div className="no-scrollbar max-h-70 space-y-3 overflow-y-auto rounded-xl border border-border/60 bg-muted/20 p-3">
                   {inquiry.messages.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No messages yet.</p>
                   ) : (
@@ -331,12 +420,13 @@ export default function InquiryDetailsModal({
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <Input
                     value={draftMessage}
                     onChange={(event) => setDraftMessage(event.target.value)}
                     placeholder="Type a message..."
                     disabled={sending || Boolean(processingAction)}
+                    className="w-full"
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
                         event.preventDefault()
@@ -348,12 +438,13 @@ export default function InquiryDetailsModal({
                     type="button"
                     onClick={() => void handleSendMessage()}
                     disabled={sending || Boolean(processingAction) || !draftMessage.trim()}
+                    className="w-full sm:w-auto"
                   >
                     {sending ? "Sending..." : "Send"}
                     <Send className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
-              </div>
+              </ToggleSection>
 
               <div className="flex flex-wrap justify-end gap-2 border-t border-border/60 pt-2">
                 {role === "client" && normalizedStatus === "accepted" && (
