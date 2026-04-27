@@ -169,7 +169,12 @@ export default function OwnerProfileContent() {
       </section>
 
       <section className="mx-auto max-w-3xl space-y-4 px-6 py-10">
-        {loading && <p className="text-sm text-muted-foreground">Loading profile...</p>}
+        {loading && (
+          <>
+            <Card className="h-24 animate-pulse border-border/60 bg-muted" />
+            <Card className="h-72 animate-pulse border-border/60 bg-muted" />
+          </>
+        )}
 
         {error && !loading && (
           <Card className="border-destructive/20 bg-destructive/5">

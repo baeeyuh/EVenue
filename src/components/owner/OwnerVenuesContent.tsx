@@ -118,7 +118,11 @@ export default function OwnerVenuesContent() {
           </div>
 
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading venues...</p>
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="h-56 animate-pulse rounded-2xl bg-muted" />
+              ))}
+            </div>
           ) : error ? (
             <Card className="border-destructive/20 bg-destructive/5">
               <CardContent className="p-4">

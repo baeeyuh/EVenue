@@ -60,6 +60,7 @@ export default function OwnerBookingsContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedBooking, setSelectedBooking] = useState<BookingDetails | null>(null)
+  const [detailsCache, setDetailsCache] = useState<Record<string, BookingDetails>>({})
   const [openingBookingId, setOpeningBookingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -115,10 +116,18 @@ export default function OwnerBookingsContent() {
   }, [])
 
   async function handleOpen(bookingId: string) {
+    const cached = detailsCache[bookingId]
+
+    if (cached) {
+      setSelectedBooking(cached)
+      return
+    }
+
     setOpeningBookingId(bookingId)
 
     try {
       const booking = await getBookingDetails(bookingId, "owner")
+      setDetailsCache((prev) => ({ ...prev, [bookingId]: booking }))
       setSelectedBooking(booking)
     } catch (detailsFetchError: unknown) {
       const message =
@@ -146,7 +155,13 @@ export default function OwnerBookingsContent() {
       </section>
 
       <section className="mx-auto max-w-6xl space-y-4 px-6 py-10">
-        {loading && <p className="text-sm text-muted-foreground">Loading bookings...</p>}
+        {loading && (
+          <div className="space-y-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Card key={index} className="h-28 animate-pulse border-border/60 bg-muted" />
+            ))}
+          </div>
+        )}
 
         {error && !loading && <p className="text-sm text-destructive">{error}</p>}
 

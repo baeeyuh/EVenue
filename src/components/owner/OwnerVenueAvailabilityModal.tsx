@@ -250,7 +250,9 @@ export default function OwnerVenueAvailabilityModal({
             </div>
           </div>
 
-          {loading && <p className="text-sm text-muted-foreground">Loading availability...</p>}
+          {loading && (
+            <div className="h-10 animate-pulse rounded-xl bg-muted" />
+          )}
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <Button

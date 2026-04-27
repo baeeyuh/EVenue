@@ -59,6 +59,7 @@ export default function OwnerInquiriesContent() {
   const [error, setError] = useState<string | null>(null)
   const [actionLoadingById, setActionLoadingById] = useState<Record<string, boolean>>({})
   const [selectedInquiry, setSelectedInquiry] = useState<InquiryDetails | null>(null)
+  const [detailsCache, setDetailsCache] = useState<Record<string, InquiryDetails>>({})
   const [openingInquiryId, setOpeningInquiryId] = useState<string | null>(null)
   const [detailsError, setDetailsError] = useState<string | null>(null)
 
@@ -159,11 +160,20 @@ export default function OwnerInquiriesContent() {
   }
 
   async function handleOpen(inquiryId: string) {
+    const cached = detailsCache[inquiryId]
+
+    if (cached) {
+      setDetailsError(null)
+      setSelectedInquiry(cached)
+      return
+    }
+
     setOpeningInquiryId(inquiryId)
     setDetailsError(null)
 
     try {
       const inquiry = await getInquiryDetails(inquiryId, "owner")
+      setDetailsCache((prev) => ({ ...prev, [inquiryId]: inquiry }))
       setSelectedInquiry(inquiry)
     } catch (detailsFetchError: unknown) {
       const message =
@@ -212,7 +222,11 @@ export default function OwnerInquiriesContent() {
 
       <section className="mx-auto max-w-6xl space-y-4 px-6 py-10">
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading inquiries...</p>
+          <div className="space-y-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Card key={index} className="h-32 animate-pulse border-border/60 bg-muted" />
+            ))}
+          </div>
         ) : error ? (
           <p className="text-sm text-destructive">{error}</p>
         ) : (
