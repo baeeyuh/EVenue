@@ -9,12 +9,14 @@ import {
   MessageSquare,
   CalendarCheck,
   Heart,
+  Bell,
 } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 
 import { Button } from "@/components/ui/button"
 import { supabaseClient } from "@/lib/supabaseClient"
 import BaseNavBar, { type NavItem } from "@/components/navbar/BaseNavBar"
+import { useBookingNotifications } from "@/hooks/useBookingNotifications"
 
 export default function ClientNavBar() {
   const pathname = usePathname()
@@ -38,6 +40,7 @@ export default function ClientNavBar() {
   }, [])
 
   const homeHref = user ? "/dashboard/client" : "/"
+  const { dueCount } = useBookingNotifications("client", Boolean(user))
 
   const authenticatedNavItems: NavItem[] = [
     {
@@ -63,6 +66,14 @@ export default function ClientNavBar() {
       label: "Bookings",
       icon: CalendarCheck,
       isActive: pathname.startsWith("/dashboard/client/bookings"),
+      badgeCount: dueCount,
+    },
+    {
+      href: "/dashboard/client/notifications",
+      label: "Alerts",
+      icon: Bell,
+      isActive: pathname.startsWith("/dashboard/client/notifications"),
+      badgeCount: dueCount,
     },
     {
       href: "/dashboard/client/saved",

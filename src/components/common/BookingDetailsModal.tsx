@@ -1,6 +1,6 @@
 "use client"
 
-import { CalendarDays, Users } from "lucide-react"
+import { CalendarDays, Tag, Users } from "lucide-react"
 
 import type { BookingDetails } from "@/lib/services/details/types"
 import { Badge } from "@/components/ui/badge"
@@ -60,15 +60,19 @@ function getStatusLabel(status: string | null) {
   return `${status.charAt(0).toUpperCase()}${status.slice(1).toLowerCase()}`
 }
 
-export default function BookingDetailsModal({ booking, open, onClose }: BookingDetailsModalProps) {
+export default function BookingDetailsModal({
+  booking,
+  open,
+  onClose,
+}: BookingDetailsModalProps) {
   const eventDate = booking?.event_date ?? booking?.start_date ?? null
   const guestCount = booking?.guest_count ?? booking?.inquiry?.pax ?? null
   const thread = booking?.inquiry?.messages ?? []
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-hidden rounded-3xl border-border/60 p-0">
-        <div className="border-b border-border/60 bg-background px-6 py-5">
+      <DialogContent className="w-[calc(100%-1rem)] max-h-[92dvh] max-w-2xl overflow-hidden rounded-2xl border-border/60 p-0 sm:max-h-[85vh] sm:rounded-3xl">
+        <div className="border-b border-border/60 bg-background px-4 py-4 sm:px-6 sm:py-5">
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl font-light">View Details</DialogTitle>
             <DialogDescription>
@@ -77,7 +81,7 @@ export default function BookingDetailsModal({ booking, open, onClose }: BookingD
           </DialogHeader>
         </div>
 
-        <div className="space-y-4 overflow-y-auto p-6">
+  <div className="space-y-4 overflow-y-auto p-4 sm:p-6">
           {booking && (
             <>
               <div className="rounded-2xl border border-border/60 bg-muted/25 p-4">
@@ -115,6 +119,53 @@ export default function BookingDetailsModal({ booking, open, onClose }: BookingD
                     <span className="font-medium text-foreground">Owner:</span> {booking.owner.name}
                   </p>
                 </div>
+              </div>
+
+              <div className="space-y-3 rounded-2xl border border-border/60 bg-background p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                  Venue Details
+                </p>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Venue type</p>
+                    <p className="mt-1 text-sm text-foreground">{booking.venue.venue_type ?? "Not provided"}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Capacity</p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {typeof booking.venue.capacity === "number" ? `${booking.venue.capacity} pax` : "Not provided"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Starting price</p>
+                    <p className="mt-1 inline-flex items-center gap-1 text-sm text-foreground">
+                      <Tag className="h-3.5 w-3.5" />
+                      {typeof booking.venue.price === "number" ? `₱${booking.venue.price.toLocaleString()}` : "Not provided"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Availability</p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {booking.venue.is_available === null || booking.venue.is_available === undefined
+                        ? "Not set"
+                        : booking.venue.is_available
+                          ? "Available"
+                          : "Unavailable"}
+                    </p>
+                  </div>
+                </div>
+
+                {(booking.venue.description || booking.venue.additional_info) && (
+                  <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3">
+                    {booking.venue.description && (
+                      <p className="text-sm text-muted-foreground">{booking.venue.description}</p>
+                    )}
+                    {booking.venue.additional_info && (
+                      <p className="text-sm text-muted-foreground">{booking.venue.additional_info}</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3 rounded-2xl border border-border/60 bg-background p-4">

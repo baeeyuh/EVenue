@@ -130,7 +130,8 @@ async function tryGetRelationalInquiryDetails(client: SupabaseClient, inquiryId:
   const clientId = row.client_id ?? row.user_id ?? null
   const ownerId = row.owner_id ?? null
 
-  const [fallbackClientProfile, fallbackOwnerProfile] = await Promise.all([
+  const [fullVenue, fallbackClientProfile, fallbackOwnerProfile] = await Promise.all([
+    fetchVenue(client, venue?.id ?? row.venue_id ?? null),
     !clientProfile && clientId ? fetchProfile(client, clientId) : Promise.resolve(null),
     !ownerProfile && ownerId ? fetchProfile(client, ownerId) : Promise.resolve(null),
   ])
@@ -164,12 +165,7 @@ async function tryGetRelationalInquiryDetails(client: SupabaseClient, inquiryId:
       pax: row.pax,
       status: row.status,
       created_at: row.created_at,
-      venue: {
-        id: venue?.id ?? row.venue_id,
-        name: venue?.name ?? "Unknown venue",
-        location: venue?.location ?? null,
-        price: venue?.price ?? null,
-      },
+      venue: fullVenue,
       client: {
         id: fallbackClientProfile?.id ?? clientProfile?.id ?? clientId,
         name: fallbackClientProfile?.name ?? buildName(clientProfile),
@@ -241,24 +237,70 @@ async function fetchVenue(client: SupabaseClient, venueId: string | null): Promi
     }
   }
 
-  const venueLookup = await client
+  const preferredLookup = await client
     .from("venues")
-    .select("id, name, location, price")
+    .select("id, name, location, price, capacity, venue_type, description, additional_info, image, is_available")
     .eq("id", venueId)
     .maybeSingle()
 
-  const venue = (venueLookup.data as {
+  let venueData = preferredLookup.data as {
     id: string
     name?: string | null
     location?: string | null
     price?: number | null
-  } | null) ?? null
+    capacity?: number | null
+    venue_type?: string | null
+    description?: string | null
+    additional_info?: string | null
+    image?: string | null
+    is_available?: boolean | null
+  } | null
+  let venueError = preferredLookup.error
+
+  if (
+    venueError &&
+    (isMissingColumnError(venueError, "capacity") ||
+      isMissingColumnError(venueError, "venue_type") ||
+      isMissingColumnError(venueError, "additional_info") ||
+      isMissingColumnError(venueError, "is_available"))
+  ) {
+    const fallbackLookup = await client
+      .from("venues")
+      .select("id, name, location, price")
+      .eq("id", venueId)
+      .maybeSingle()
+
+    venueData = fallbackLookup.data as {
+      id: string
+      name?: string | null
+      location?: string | null
+      price?: number | null
+    } | null
+    venueError = fallbackLookup.error
+  }
+
+  if (venueError) {
+    return {
+      id: venueId,
+      name: "Unknown venue",
+      location: null,
+      price: null,
+    }
+  }
+
+  const venue = venueData ?? null
 
   return {
     id: venueId,
     name: venue?.name ?? "Unknown venue",
     location: venue?.location ?? null,
     price: typeof venue?.price === "number" ? venue.price : null,
+    capacity: typeof venue?.capacity === "number" ? venue.capacity : null,
+    venue_type: venue?.venue_type ?? null,
+    description: venue?.description ?? null,
+    additional_info: venue?.additional_info ?? null,
+    image: venue?.image ?? null,
+    is_available: typeof venue?.is_available === "boolean" ? venue.is_available : null,
   }
 }
 

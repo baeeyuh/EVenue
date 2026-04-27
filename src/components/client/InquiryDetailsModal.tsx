@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { CalendarDays, Send, Users } from "lucide-react"
+import { CalendarDays, Send, Tag, Users } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -223,8 +223,8 @@ export default function InquiryDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-h-[88vh] max-w-3xl overflow-hidden rounded-3xl border-border/60 p-0">
-        <div className="border-b border-border/60 bg-background px-6 py-5">
+      <DialogContent className="w-[calc(100%-1rem)] max-h-[92dvh] max-w-3xl overflow-hidden rounded-2xl border-border/60 p-0 sm:max-h-[88vh] sm:rounded-3xl">
+        <div className="border-b border-border/60 bg-background px-4 py-4 sm:px-6 sm:py-5">
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl font-light">View Details</DialogTitle>
             <DialogDescription>
@@ -233,7 +233,7 @@ export default function InquiryDetailsModal({
           </DialogHeader>
         </div>
 
-        <div className="space-y-4 overflow-y-auto p-6">
+  <div className="space-y-4 overflow-y-auto p-4 sm:p-6">
           {loading && <p className="text-sm text-muted-foreground">Loading details...</p>}
           {error && !loading && <p className="text-sm text-destructive">{error}</p>}
 
@@ -288,6 +288,53 @@ export default function InquiryDetailsModal({
 
               <div className="space-y-3 rounded-2xl border border-border/60 bg-background p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                  Venue Details
+                </p>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Venue type</p>
+                    <p className="mt-1 text-sm text-foreground">{inquiry.venue.venue_type ?? "Not provided"}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Capacity</p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {typeof inquiry.venue.capacity === "number" ? `${inquiry.venue.capacity} pax` : "Not provided"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Starting price</p>
+                    <p className="mt-1 inline-flex items-center gap-1 text-sm text-foreground">
+                      <Tag className="h-3.5 w-3.5" />
+                      {typeof inquiry.venue.price === "number" ? `₱${inquiry.venue.price.toLocaleString()}` : "Not provided"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Availability</p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {inquiry.venue.is_available === null || inquiry.venue.is_available === undefined
+                        ? "Not set"
+                        : inquiry.venue.is_available
+                          ? "Available"
+                          : "Unavailable"}
+                    </p>
+                  </div>
+                </div>
+
+                {(inquiry.venue.description || inquiry.venue.additional_info) && (
+                  <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3">
+                    {inquiry.venue.description && (
+                      <p className="text-sm text-muted-foreground">{inquiry.venue.description}</p>
+                    )}
+                    {inquiry.venue.additional_info && (
+                      <p className="text-sm text-muted-foreground">{inquiry.venue.additional_info}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3 rounded-2xl border border-border/60 bg-background p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
                   Messages
                 </p>
 
@@ -326,12 +373,13 @@ export default function InquiryDetailsModal({
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <Input
                     value={draftMessage}
                     onChange={(event) => setDraftMessage(event.target.value)}
                     placeholder="Type a message..."
                     disabled={sending || Boolean(processingAction)}
+                    className="w-full"
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
                         event.preventDefault()
@@ -343,6 +391,7 @@ export default function InquiryDetailsModal({
                     type="button"
                     onClick={() => void handleSendMessage()}
                     disabled={sending || Boolean(processingAction) || !draftMessage.trim()}
+                    className="w-full sm:w-auto"
                   >
                     {sending ? "Sending..." : "Send"}
                     <Send className="ml-2 h-4 w-4" />

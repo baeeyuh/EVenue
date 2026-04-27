@@ -58,12 +58,12 @@ export default function VenueDetailsModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="p-0 overflow-hidden rounded-2xl max-w-lg border-border/60 gap-0">
-          <div className="relative h-52 w-full">
+        <DialogContent className="w-[calc(100%-1rem)] max-h-[92dvh] max-w-lg overflow-hidden rounded-2xl border-border/60 p-0 gap-0 sm:max-h-[88vh]">
+          <div className="relative h-44 w-full sm:h-52">
             <Image src={safeImage} alt={name} fill className="object-cover" />
           </div>
 
-          <div className="p-6 space-y-4">
+          <div className="space-y-4 overflow-y-auto p-4 sm:p-6">
             <DialogHeader className="space-y-0">
               <div className="flex items-center gap-2 mb-2">
                 <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
@@ -140,7 +140,7 @@ export default function VenueDetailsModal({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {isOwnerContext ? (
                 <>
                   <Button

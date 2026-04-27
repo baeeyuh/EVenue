@@ -153,8 +153,8 @@ export default function OwnerVenueAvailabilityModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl overflow-hidden rounded-[2rem] border-border/60 p-0">
-        <div className="border-b border-border/60 bg-linear-to-br from-primary/8 via-background to-background px-6 py-5">
+      <DialogContent className="w-[calc(100%-1rem)] max-h-[92dvh] max-w-2xl overflow-hidden rounded-2xl border-border/60 p-0 sm:rounded-[2rem] sm:max-h-[88vh]">
+        <div className="border-b border-border/60 bg-linear-to-br from-primary/8 via-background to-background px-4 py-4 sm:px-6 sm:py-5">
           <DialogHeader className="space-y-2">
             <DialogTitle className="font-serif text-2xl font-light">View availability</DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
@@ -163,7 +163,7 @@ export default function OwnerVenueAvailabilityModal({
           </DialogHeader>
         </div>
 
-        <div className="space-y-5 p-6">
+  <div className="space-y-5 overflow-y-auto p-4 sm:p-6">
           <div className="grid gap-3 rounded-[1.5rem] border border-border/60 bg-muted/30 p-4 md:grid-cols-2">
             <div>
               <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Available dates</p>
@@ -186,7 +186,7 @@ export default function OwnerVenueAvailabilityModal({
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
-            <h3 className="font-serif text-xl">{formatMonthYear(viewDate)}</h3>
+            <h3 className="font-serif text-lg sm:text-xl">{formatMonthYear(viewDate)}</h3>
 
             <Button
               type="button"
@@ -199,7 +199,7 @@ export default function OwnerVenueAvailabilityModal({
             </Button>
           </div>
 
-          <div className="grid grid-cols-7 gap-2 text-center text-xs uppercase tracking-[0.16em] text-muted-foreground">
+          <div className="grid grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-[0.12em] text-muted-foreground sm:gap-2 sm:text-xs sm:tracking-[0.16em]">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
               <div key={day} className="py-2">
                 {day}
@@ -207,7 +207,7 @@ export default function OwnerVenueAvailabilityModal({
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {days.map((day, index) => {
               if (!day) {
                 return <div key={`empty-${index}`} className="aspect-square" />
@@ -221,7 +221,7 @@ export default function OwnerVenueAvailabilityModal({
                 <div
                   key={key}
                   className={cn(
-                    "flex aspect-square items-center justify-center rounded-2xl border text-sm",
+                    "flex aspect-square items-center justify-center rounded-xl border text-xs sm:rounded-2xl sm:text-sm",
                     isAvailable && "border-emerald-200 bg-emerald-50 text-emerald-700",
                     isUnavailable && "border-border/60 bg-muted/40 text-muted-foreground",
                     !isAvailable && !isUnavailable && "border-border/40 bg-background"

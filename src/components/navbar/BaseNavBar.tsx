@@ -22,6 +22,7 @@ export type NavItem = {
   label: string
   icon: LucideIcon
   isActive: boolean
+  badgeCount?: number
 }
 
 type BaseNavBarProps = {
@@ -131,7 +132,7 @@ export default function BaseNavBar({
 
           {/* Middle nav */}
      <nav className="grid w-full grid-flow-col auto-cols-fr items-center border-t border-border/50 pt-2.5 sm:flex sm:w-auto sm:flex-wrap sm:justify-center sm:gap-x-2.5 sm:gap-y-2 sm:pt-3 lg:flex-1 lg:flex-nowrap lg:justify-center lg:gap-x-8 lg:border-t-0 lg:pt-0">
-            {navItems.map(({ href, label, icon: Icon, isActive }) => (
+            {navItems.map(({ href, label, icon: Icon, isActive, badgeCount }) => (
             <Link
             key={href}
             href={href}
@@ -146,6 +147,11 @@ export default function BaseNavBar({
             >
             <Icon className="h-4.5 w-4.5 sm:h-4 sm:w-4 lg:h-4.5 lg:w-4.5" />
             <span className="hidden font-serif leading-none sm:inline">{label}</span>
+            {(badgeCount ?? 0) > 0 && (
+              <span className="ml-1 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                {badgeCount && badgeCount > 99 ? "99+" : badgeCount}
+              </span>
+            )}
             </Link>
         ))}
         </nav>

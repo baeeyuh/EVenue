@@ -9,12 +9,14 @@ import {
   Building2,
   MessageSquare,
   CalendarCheck,
+  Bell,
 } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 
 import { Button } from "@/components/ui/button"
 import { supabaseClient } from "@/lib/supabaseClient"
 import BaseNavBar, { type NavItem } from "@/components/navbar/BaseNavBar"
+import { useBookingNotifications } from "@/hooks/useBookingNotifications"
 
 export default function OwnerNavBar() {
   const pathname = usePathname()
@@ -38,6 +40,7 @@ export default function OwnerNavBar() {
   }, [])
 
   const homeHref = user ? "/dashboard/owner" : "/"
+  const { dueCount } = useBookingNotifications("owner", Boolean(user))
 
   const authenticatedNavItems: NavItem[] = [
     {
@@ -63,6 +66,14 @@ export default function OwnerNavBar() {
       label: "Bookings",
       icon: CalendarCheck,
       isActive: pathname.startsWith("/dashboard/owner/bookings"),
+      badgeCount: dueCount,
+    },
+    {
+      href: "/dashboard/owner/notifications",
+      label: "Alerts",
+      icon: Bell,
+      isActive: pathname.startsWith("/dashboard/owner/notifications"),
+      badgeCount: dueCount,
     },
   ]
 

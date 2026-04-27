@@ -352,7 +352,8 @@ export async function updateOwnerVenue(
     .single()
 
   if (error && isAdditionalInfoMissingError(error)) {
-    const { additional_info: _ignored, ...fallbackUpdates } = updates
+    const fallbackUpdates = { ...updates }
+    delete fallbackUpdates.additional_info
 
     const fallbackUpdate = await client
       .from("venues")
