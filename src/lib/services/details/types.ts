@@ -12,6 +12,15 @@ export type DetailVenue = {
   name: string
   location: string | null
   price: number | null
+  capacity?: number | null
+  venue_type?: string | null
+  description?: string | null
+  additional_info?: string | null
+  image?: string | null
+  is_available?: boolean | null
+  amenities?: string[] | null
+  rating?: number | null
+  review_count?: number | null
 }
 
 export type DetailPerson = {

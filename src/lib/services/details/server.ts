@@ -204,7 +204,8 @@ async function tryGetRelationalInquiryDetails(client: SupabaseClient, inquiryId:
   const clientId = row.client_id ?? row.user_id ?? null
   const ownerId = row.owner_id ?? null
 
-  const [fallbackClientProfile, fallbackOwnerProfile] = await Promise.all([
+  const [fullVenue, fallbackClientProfile, fallbackOwnerProfile] = await Promise.all([
+    fetchVenue(client, venue?.id ?? row.venue_id ?? null),
     !clientProfile && clientId ? fetchProfile(client, clientId) : Promise.resolve(null),
     !ownerProfile && ownerId ? fetchProfile(client, ownerId) : Promise.resolve(null),
   ])
@@ -238,12 +239,7 @@ async function tryGetRelationalInquiryDetails(client: SupabaseClient, inquiryId:
       pax: row.pax,
       status: row.status,
       created_at: row.created_at,
-      venue: {
-        id: venue?.id ?? row.venue_id,
-        name: venue?.name ?? "Unknown venue",
-        location: venue?.location ?? null,
-        price: venue?.price ?? null,
-      },
+      venue: fullVenue,
       client: {
         id: fallbackClientProfile?.id ?? clientProfile?.id ?? clientId,
         name: fallbackClientProfile?.name ?? buildName(clientProfile),
@@ -315,24 +311,79 @@ async function fetchVenue(client: SupabaseClient, venueId: string | null): Promi
     }
   }
 
-  const venueLookup = await client
+  const preferredLookup = await client
     .from("venues")
-    .select("id, name, location, price")
+    .select("id, name, location, price, capacity, venue_type, description, additional_info, image, is_available, amenities, rating, review_count")
     .eq("id", venueId)
     .maybeSingle()
 
-  const venue = (venueLookup.data as {
+  let venueData = preferredLookup.data as {
     id: string
     name?: string | null
     location?: string | null
     price?: number | null
-  } | null) ?? null
+    capacity?: number | null
+    venue_type?: string | null
+    description?: string | null
+    additional_info?: string | null
+    image?: string | null
+    is_available?: boolean | null
+    amenities?: string[] | null
+    rating?: number | null
+    review_count?: number | null
+  } | null
+  let venueError = preferredLookup.error
+
+  if (
+    venueError &&
+    (isMissingColumnError(venueError, "capacity") ||
+      isMissingColumnError(venueError, "venue_type") ||
+      isMissingColumnError(venueError, "additional_info") ||
+  isMissingColumnError(venueError, "is_available") ||
+  isMissingColumnError(venueError, "amenities") ||
+  isMissingColumnError(venueError, "rating") ||
+  isMissingColumnError(venueError, "review_count"))
+  ) {
+    const fallbackLookup = await client
+      .from("venues")
+      .select("id, name, location, price")
+      .eq("id", venueId)
+      .maybeSingle()
+
+    venueData = fallbackLookup.data as {
+      id: string
+      name?: string | null
+      location?: string | null
+      price?: number | null
+    } | null
+    venueError = fallbackLookup.error
+  }
+
+  if (venueError) {
+    return {
+      id: venueId,
+      name: "Unknown venue",
+      location: null,
+      price: null,
+    }
+  }
+
+  const venue = venueData ?? null
 
   return {
     id: venueId,
     name: venue?.name ?? "Unknown venue",
     location: venue?.location ?? null,
     price: typeof venue?.price === "number" ? venue.price : null,
+    capacity: typeof venue?.capacity === "number" ? venue.capacity : null,
+    venue_type: venue?.venue_type ?? null,
+    description: venue?.description ?? null,
+    additional_info: venue?.additional_info ?? null,
+    image: venue?.image ?? null,
+    is_available: typeof venue?.is_available === "boolean" ? venue.is_available : null,
+    amenities: Array.isArray(venue?.amenities) ? venue.amenities : null,
+    rating: typeof venue?.rating === "number" ? venue.rating : null,
+    review_count: typeof venue?.review_count === "number" ? venue.review_count : null,
   }
 }
 
@@ -508,6 +559,7 @@ export async function getClientInquiryDetails(
     const fallbackMessage = row.message ?? ""
     const fallbackTimestamp = row.created_at ?? new Date(0).toISOString()
     const messages = parseViewMessages(row.messages)
+    const venue = await fetchVenue(client, row.venue_id)
 
     return {
       id: row.id,
@@ -516,10 +568,9 @@ export async function getClientInquiryDetails(
       status: row.status,
       created_at: row.created_at,
       venue: {
-        id: row.venue_id,
-        name: row.venue_name ?? "Unknown venue",
-        location: row.location ?? null,
-        price: null,
+        ...venue,
+        name: venue.name || row.venue_name || "Unknown venue",
+        location: venue.location ?? row.location ?? null,
       },
       client: {
         id: row.client_id,
@@ -604,6 +655,7 @@ export async function getOwnerInquiryDetails(
   const fallbackMessage = row.message ?? ""
   const fallbackTimestamp = row.created_at ?? new Date(0).toISOString()
   const messages = parseViewMessages(row.messages)
+  const venue = await fetchVenue(client, row.venue_id)
 
   return {
     id: row.id,
@@ -612,10 +664,9 @@ export async function getOwnerInquiryDetails(
     status: row.status,
     created_at: row.created_at,
     venue: {
-      id: row.venue_id,
-      name: row.venue_name ?? "Unknown venue",
-      location: row.location ?? null,
-      price: null,
+      ...venue,
+      name: venue.name || row.venue_name || "Unknown venue",
+      location: venue.location ?? row.location ?? null,
     },
     client: {
       id: row.client_id,
@@ -724,12 +775,12 @@ export async function getClientBookingDetails(
   if (!viewLookup.error && viewLookup.data) {
     const row = viewLookup.data as ClientBookingDetailsViewRow
     const thread = parseViewMessages(row.messages)
+    const venue = await fetchVenue(client, row.venue_id)
 
-    const venue: DetailVenue = {
-      id: row.venue_id,
-      name: row.venue_name ?? "Unknown venue",
-      location: row.location ?? null,
-      price: null,
+    const detailVenue: DetailVenue = {
+      ...venue,
+      name: venue.name || row.venue_name || "Unknown venue",
+      location: venue.location ?? row.location ?? null,
     }
 
     const detailClient: DetailPerson = {
@@ -750,7 +801,7 @@ export async function getClientBookingDetails(
       pax: null,
       status: row.status,
       created_at: row.created_at,
-      venue,
+      venue: detailVenue,
       client: detailClient,
       owner,
       messages: thread,
@@ -766,7 +817,7 @@ export async function getClientBookingDetails(
       end_date: row.end_date,
       guest_count: null,
       price: null,
-      venue,
+  venue: detailVenue,
       client: detailClient,
       owner,
       inquiry,
@@ -822,12 +873,12 @@ export async function getOwnerBookingDetails(
     email: row.owner_email ?? null,
   }
   const thread = parseViewMessages(row.messages)
+  const venue = await fetchVenue(client, row.venue_id)
 
   const sharedVenue: DetailVenue = {
-    id: row.venue_id,
-    name: row.venue_name ?? "Unknown venue",
-    location: row.location ?? null,
-    price: null,
+    ...venue,
+    name: venue.name || row.venue_name || "Unknown venue",
+    location: venue.location ?? row.location ?? null,
   }
 
   const sharedClient: DetailPerson = {
