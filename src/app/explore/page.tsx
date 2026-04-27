@@ -20,8 +20,10 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <section className="mx-auto max-w-7xl px-6 pt-4 pb-6">
-        <ExploreTypeSwitch activeType={type} />
+      <section className="sticky z-40 border-b border-border/60 bg-background/95 backdrop-blur-xl" style={{ top: "var(--app-navbar-height, 0px)" }}>
+        <div className="mx-auto max-w-7xl px-4 py-2.5 sm:px-6 sm:py-4">
+          <ExploreTypeSwitch activeType={type} />
+        </div>
       </section>
 
       {type === "venues" ? (

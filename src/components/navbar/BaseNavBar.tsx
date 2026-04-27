@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ChevronDown, LogOut, User } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
@@ -44,6 +44,27 @@ export default function BaseNavBar({
   authActions,
 }: BaseNavBarProps) {
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const headerRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    const header = headerRef.current
+    if (!header) return
+
+    const setNavbarHeightVar = () => {
+      document.documentElement.style.setProperty("--app-navbar-height", `${header.offsetHeight}px`)
+    }
+
+    setNavbarHeightVar()
+
+    const resizeObserver = new ResizeObserver(setNavbarHeightVar)
+    resizeObserver.observe(header)
+    window.addEventListener("resize", setNavbarHeightVar)
+
+    return () => {
+      resizeObserver.disconnect()
+      window.removeEventListener("resize", setNavbarHeightVar)
+    }
+  }, [])
 
   async function handleSignOut() {
     if (isSigningOut) return
@@ -64,7 +85,10 @@ export default function BaseNavBar({
   const initials = `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase()
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/95 backdrop-blur-xl">
+    <header
+      ref={headerRef}
+      className="sticky top-0 z-50 border-b border-border/60 bg-background/95 backdrop-blur-xl"
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex flex-col gap-3 py-2.5 sm:py-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
           {/* Top row on mobile / Left on desktop */}
