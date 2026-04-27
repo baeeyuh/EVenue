@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import {
   Mail,
   Phone,
-  SendHorizonal,
+  SendHorizontal,
   User2,
   CalendarDays,
   Users,
@@ -236,92 +236,92 @@ export default function SendInquiryModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl overflow-hidden rounded-[2rem] border-border/60 p-0">
-        <div className="border-b border-border/60 bg-linear-to-br from-primary/8 via-background to-background px-6 py-5">
+      <DialogContent className="flex max-h-[90svh] w-[calc(100vw-0.75rem)] max-w-2xl flex-col overflow-hidden rounded-[1.5rem] border-border/60 p-0 sm:w-full sm:rounded-[2rem]">
+        <div className="shrink-0 border-b border-border/60 bg-linear-to-br from-primary/8 via-background to-background px-4 py-4 sm:px-6 sm:py-5">
           <DialogHeader className="space-y-2">
-            <DialogTitle className="font-serif text-2xl font-light">
+            <DialogTitle className="font-serif text-xl font-light sm:text-2xl">
               Send inquiry
             </DialogTitle>
 
-            <DialogDescription className="text-sm text-muted-foreground">
+            <DialogDescription className="text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
               Contact <span className="font-medium text-foreground">{ownerName || "the host"}</span>{" "}
               about <span className="font-medium text-foreground">{venueName}</span>.
             </DialogDescription>
           </DialogHeader>
         </div>
 
-        <div className="space-y-5 p-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="flex-1 space-y-3.5 overflow-y-auto p-4 sm:space-y-5 sm:p-6 no-scrollbar">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
                 Full name
               </Label>
               <div className="relative">
-                <User2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <User2 className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground sm:left-3 sm:h-4 sm:w-4" />
                 <Input
                   placeholder="Juan dela Cruz"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                  className="h-10 rounded-xl border-border/60 bg-muted/40 pl-8 pr-2 text-[13px] sm:h-11 sm:pl-10 sm:pr-3 sm:text-sm"
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
                 Email
               </Label>
               <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Mail className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground sm:left-3 sm:h-4 sm:w-4" />
                 <Input
                   type="email"
                   placeholder="you@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                  className="h-10 rounded-xl border-border/60 bg-muted/40 pl-8 pr-2 text-[13px] sm:h-11 sm:pl-10 sm:pr-3 sm:text-sm"
                 />
               </div>
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                Contact number
+          <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
+                Contact No.
               </Label>
               <div className="relative">
-                <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Phone className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground sm:left-3 sm:h-4 sm:w-4" />
                 <Input
                   type="tel"
                   placeholder="09XX XXX XXXX"
                   value={contactNumber}
                   onChange={(e) => setContactNumber(e.target.value)}
-                  className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                  className="h-10 rounded-xl border-border/60 bg-muted/40 pl-8 pr-2 text-[13px] sm:h-11 sm:pl-10 sm:pr-3 sm:text-sm"
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
                 Event date
               </Label>
               <div className="relative">
-                <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground sm:left-3 sm:h-4 sm:w-4" />
                 <Input
                   type="date"
                   value={eventDate}
                   onChange={(e) => setEventDate(e.target.value)}
-                  className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                  className="h-10 rounded-xl border-border/60 bg-muted/40 pl-8 pr-2 text-[13px] sm:h-11 sm:pl-10 sm:pr-3 sm:text-sm"
                 />
               </div>
               {dateStatusText && (
                 <p
-                  className={`text-xs ${
+                  className={`text-[11px] sm:text-xs ${
                     isDateAvailable === false
                       ? "text-destructive"
                       : isDateAvailable === true
-                      ? "text-emerald-600"
-                      : "text-muted-foreground"
+                        ? "text-emerald-600"
+                        : "text-muted-foreground"
                   }`}
                 >
                   {dateStatusText}
@@ -329,94 +329,94 @@ export default function SendInquiryModal({
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
                 Guest count
               </Label>
               <div className="relative">
-                <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Users className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground sm:left-3 sm:h-4 sm:w-4" />
                 <Input
                   type="number"
                   min="1"
                   placeholder="e.g. 150"
                   value={guestCount}
                   onChange={(e) => setGuestCount(e.target.value)}
-                  className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                  className="h-10 rounded-xl border-border/60 bg-muted/40 pl-8 pr-2 text-[13px] sm:h-11 sm:pl-10 sm:pr-3 sm:text-sm"
                 />
               </div>
               {exceedsCapacity && (
-                <p className="text-xs text-destructive">
+                <p className="text-[11px] text-destructive sm:text-xs">
                   Guest count exceeds the venue capacity of {venueCapacity}.
                 </p>
               )}
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
                 Start time
               </Label>
               <div className="relative">
-                <Clock3 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Clock3 className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground sm:left-3 sm:h-4 sm:w-4" />
                 <Input
                   type="time"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                  className="h-10 rounded-xl border-border/60 bg-muted/40 pl-8 pr-2 text-[13px] sm:h-11 sm:pl-10 sm:pr-3 sm:text-sm"
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
                 End time
               </Label>
               <div className="relative">
-                <Clock3 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Clock3 className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground sm:left-3 sm:h-4 sm:w-4" />
                 <Input
                   type="time"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                  className="h-10 rounded-xl border-border/60 bg-muted/40 pl-8 pr-2 text-[13px] sm:h-11 sm:pl-10 sm:pr-3 sm:text-sm"
                 />
               </div>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <Label className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
               Event type
             </Label>
             <Input
               placeholder="Wedding, debut, seminar, corporate event..."
               value={eventType}
               onChange={(e) => setEventType(e.target.value)}
-              className="h-11 rounded-xl border-border/60 bg-muted/40"
+              className="h-10 rounded-xl border-border/60 bg-muted/40 px-3 text-[13px] sm:h-11 sm:text-sm"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <Label className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
               Message / special requests
             </Label>
             <textarea
               placeholder="Tell the host about your event, setup, inclusions you need, styling, catering, sound system, or other requests..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="min-h-35 w-full rounded-2xl border border-border/60 bg-muted/40 px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:border-primary"
+              className="min-h-[120px] w-full rounded-2xl border border-border/60 bg-muted/40 px-3 py-3 text-[13px] outline-none placeholder:text-muted-foreground focus:border-primary sm:min-h-[140px] sm:px-4 sm:text-sm"
             />
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
           {success && <p className="text-sm text-emerald-600">{success}</p>}
 
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={loading}
-              className="h-11 rounded-full border-border/60"
+              className="h-10 rounded-full border-border/60 px-3 text-xs sm:h-11 sm:text-sm"
             >
               Close
             </Button>
@@ -424,9 +424,9 @@ export default function SendInquiryModal({
             <Button
               onClick={handleSubmit}
               disabled={isDisabled}
-              className="h-11 rounded-full bg-primary text-white hover:bg-primary/90"
+              className="h-10 rounded-full bg-primary px-3 text-xs text-white hover:bg-primary/90 sm:h-11 sm:text-sm"
             >
-              <SendHorizonal className="mr-2 h-4 w-4" />
+              <SendHorizontal className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />
               {loading ? "Sending..." : "Send Inquiry"}
             </Button>
           </div>

@@ -149,56 +149,56 @@ export default function CheckAvailabilityModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl overflow-hidden rounded-[2rem] border-border/60 p-0">
-        <div className="border-b border-border/60 bg-gradient-to-br from-primary/8 via-background to-background px-6 py-5">
+      <DialogContent className="flex max-h-[90svh] w-[calc(100vw-0.75rem)] max-w-2xl flex-col overflow-hidden rounded-[1.5rem] border-border/60 p-0 sm:w-full sm:rounded-[2rem]">
+        <div className="shrink-0 border-b border-border/60 bg-gradient-to-br from-primary/8 via-background to-background px-4 py-4 sm:px-6 sm:py-5">
           <DialogHeader className="space-y-2">
-
-            <DialogTitle className="font-serif text-2xl font-light">
+            <DialogTitle className="font-serif text-xl font-light sm:text-2xl">
               Check availability
             </DialogTitle>
 
-            <DialogDescription className="text-sm text-muted-foreground">
+            <DialogDescription className="text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
               View available dates for{" "}
               <span className="font-medium text-foreground">{venueName}</span>.
             </DialogDescription>
           </DialogHeader>
         </div>
 
-        <div className="space-y-5 p-6">
-
-          <div className="flex items-center justify-between">
+        <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:space-y-5 sm:p-6 no-scrollbar">
+          <div className="flex items-center justify-between gap-2">
             <Button
               type="button"
               variant="outline"
               size="icon"
-              className="rounded-full border-border/60"
+              className="h-9 w-9 shrink-0 rounded-full border-border/60 sm:h-10 sm:w-10"
               onClick={() => setViewDate((prev) => addMonths(prev, -1))}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
-            <h3 className="font-serif text-xl">{formatMonthYear(viewDate)}</h3>
+            <h3 className="text-center font-serif text-lg leading-tight sm:text-xl">
+              {formatMonthYear(viewDate)}
+            </h3>
 
             <Button
               type="button"
               variant="outline"
               size="icon"
-              className="rounded-full border-border/60"
+              className="h-9 w-9 shrink-0 rounded-full border-border/60 sm:h-10 sm:w-10"
               onClick={() => setViewDate((prev) => addMonths(prev, 1))}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
 
-          <div className="grid grid-cols-7 gap-2 text-center text-xs uppercase tracking-[0.16em] text-muted-foreground">
+          <div className="grid grid-cols-7 gap-1.5 text-center text-[10px] uppercase tracking-[0.12em] text-muted-foreground sm:gap-2 sm:text-xs sm:tracking-[0.16em]">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-              <div key={day} className="py-2">
+              <div key={day} className="py-1.5 sm:py-2">
                 {day}
               </div>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
             {days.map((day, index) => {
               if (!day) {
                 return <div key={`empty-${index}`} className="aspect-square" />
@@ -217,7 +217,7 @@ export default function CheckAvailabilityModal({
                   disabled={!isAvailable}
                   onClick={() => setSelectedDate(key)}
                   className={cn(
-                    "aspect-square rounded-2xl border text-sm transition-all",
+                    "aspect-square rounded-xl border text-xs transition-all sm:rounded-2xl sm:text-sm",
                     isSelected && "border-primary bg-primary text-primary-foreground",
                     !isSelected &&
                       isAvailable &&
@@ -232,7 +232,7 @@ export default function CheckAvailabilityModal({
             })}
           </div>
 
-          <div className="flex flex-wrap gap-3 text-sm">
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs sm:text-sm">
             <div className="flex items-center gap-2">
               <span className="h-3 w-3 rounded-full bg-primary" />
               <span className="text-muted-foreground">Selected</span>
@@ -249,30 +249,30 @@ export default function CheckAvailabilityModal({
             </div>
           </div>
 
-          {loading && (
-            <div className="h-10 animate-pulse rounded-xl bg-muted" />
-          )}
+          {loading && <div className="h-10 animate-pulse rounded-xl bg-muted" />}
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           {selectedDate && (
-            <div className="rounded-[1.5rem] border border-primary/20 bg-primary/5 p-4">
-              <p className="text-sm text-muted-foreground">Selected date</p>
-              <p className="mt-1 font-medium text-foreground">{selectedDate}</p>
+            <div className="rounded-[1.25rem] border border-primary/20 bg-primary/5 p-3.5 sm:rounded-[1.5rem] sm:p-4">
+              <p className="text-xs text-muted-foreground sm:text-sm">Selected date</p>
+              <p className="mt-1 text-sm font-medium text-foreground sm:text-base">
+                {selectedDate}
+              </p>
             </div>
           )}
 
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="h-11 rounded-full border-border/60"
+              className="h-10 rounded-full border-border/60 px-3 text-[11px] sm:h-11 sm:text-sm"
             >
               Close
             </Button>
 
             <Button
               disabled={!selectedDate}
-              className="h-11 rounded-full bg-primary text-white hover:bg-primary/90"
+              className="h-10 rounded-full bg-primary px-3 text-[11px] leading-tight text-white hover:bg-primary/90 sm:h-11 sm:text-sm"
               onClick={() => {
                 if (selectedDate) {
                   onContinue?.(selectedDate)
