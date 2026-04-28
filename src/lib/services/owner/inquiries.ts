@@ -180,19 +180,46 @@ export async function updateInquiryStatus(
     throw new Error("Inquiry not found")
   }
 
-  const updateResult = await client
+  const statusValue = status === "accepted" ? "Accepted" : "Rejected"
+
+  let updateResult = await client
     .from("inquiries")
-    .update({ status })
+    .update({ status: statusValue, owner_id: ownerId })
     .eq("id", inquiryId)
+    .eq("venue_id", existing.venue_id)
+
+  if (updateResult.error && isMissingColumnError(updateResult.error, "owner_id")) {
+    updateResult = await client
+      .from("inquiries")
+      .update({ status: statusValue })
+      .eq("id", inquiryId)
+      .eq("venue_id", existing.venue_id)
+  }
+
+  if (updateResult.error && isMissingColumnError(updateResult.error, "status")) {
+    updateResult = await client
+      .from("inquiries")
+      .update({ status })
+      .eq("id", inquiryId)
+      .eq("venue_id", existing.venue_id)
+  }
 
   if (updateResult.error) {
     console.error(updateResult.error)
     throw new Error("Failed to update inquiry status")
   }
 
+  const updatedInquiries = await getOwnerInquiries(client, ownerId)
+  const updated = updatedInquiries.find((inquiry) => inquiry.id === inquiryId)
+  const savedStatus = normalizeInquiryStatus(updated?.status)
+
+  if (!updated || savedStatus !== status) {
+    throw new Error("Inquiry status was not updated")
+  }
+
   return {
-    ...existing,
-    status,
+    ...updated,
+    status: savedStatus,
   }
 }
 

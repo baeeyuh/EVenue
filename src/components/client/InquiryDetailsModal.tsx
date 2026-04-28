@@ -32,7 +32,10 @@ type InquiryDetailsModalProps = {
   error?: string | null
   onInquiryUpdated?: (nextInquiry: InquiryDetails) => void
   onConfirmBooking?: (inquiryId: string) => Promise<void>
-  onOwnerStatusChange?: (inquiryId: string, status: "accepted" | "rejected") => Promise<void>
+  onOwnerStatusChange?: (
+    inquiryId: string,
+    status: "accepted" | "rejected"
+  ) => Promise<{ status?: string | null } | void>
 }
 
 function getStatusVariant(status: string | null) {
@@ -210,8 +213,11 @@ export default function InquiryDetailsModal({
     setProcessingAction(status === "accepted" ? "accept" : "reject")
 
     try {
+      let savedStatus: string | null = status
+
       if (onOwnerStatusChange) {
-        await onOwnerStatusChange(inquiry.id, status)
+        const result = await onOwnerStatusChange(inquiry.id, status)
+        savedStatus = result?.status ?? status
       } else {
         const {
           data: { session },
@@ -232,15 +238,17 @@ export default function InquiryDetailsModal({
           body: JSON.stringify({ inquiryId: inquiry.id, status }),
         })
 
-        const data = (await response.json()) as { message?: string }
+        const data = (await response.json()) as { message?: string; status?: string | null }
 
         if (!response.ok) {
           throw new Error(data?.message || "Failed to update inquiry")
         }
+
+        savedStatus = data.status ?? status
       }
 
-      onInquiryUpdated?.({ ...inquiry, status })
-      toast.success(status === "accepted" ? "Inquiry accepted" : "Inquiry rejected")
+      onInquiryUpdated?.({ ...inquiry, status: savedStatus })
+      toast.success(savedStatus === "accepted" ? "Inquiry accepted" : "Inquiry rejected")
     } catch (actionError: unknown) {
       const description = actionError instanceof Error ? actionError.message : "Action failed"
       toast.error("Unable to update inquiry", { description })

@@ -132,7 +132,7 @@ export default function OwnerVenueFormModal({
         image,
         description,
         venueType,
-        isAvailable: isAvailable === "true",
+        isAvailable: mode === "add" ? true : isAvailable === "true",
       }
 
       const response = await fetch("/api/owner/venues", {
@@ -289,30 +289,32 @@ export default function OwnerVenueFormModal({
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                Availability
-              </Label>
-              <Select value={isAvailable} onValueChange={setIsAvailable}>
-                <SelectTrigger className="h-11 w-full rounded-xl border-border/60 bg-muted/40">
-                  <SelectValue placeholder="Select availability" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="true">
-                    <span className="flex items-center gap-2">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                      Available
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="false">
-                    <span className="flex items-center gap-2">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-destructive" />
-                      Unavailable
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {mode === "edit" && (
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Availability
+                </Label>
+                <Select value={isAvailable} onValueChange={setIsAvailable}>
+                  <SelectTrigger className="h-11 w-full rounded-xl border-border/60 bg-muted/40">
+                    <SelectValue placeholder="Select availability" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">
+                      <span className="flex items-center gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                        Available
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="false">
+                      <span className="flex items-center gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-destructive" />
+                        Unavailable
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
