@@ -5,6 +5,7 @@ import Link from "next/link"
 import { supabaseClient } from "@/lib/supabaseClient"
 import { MapPin, Building2, ArrowUpRight, X } from "lucide-react"
 import VenueDetailsModal from "@/components/common/VenueDetailsModal"
+import PageSectionHeader from "@/components/common/PageSectionHeader"
 
 type VenueDetailRow = {
   id: string
@@ -180,21 +181,13 @@ export default function ClientSavedContent() {
 
   return (
     <main style={{ minHeight: "100vh", background: "#fafaf8", color: "#1a1a1a", fontFamily: "var(--font-sans, sans-serif)" }}>
-
-      {/* Page Header */}
-      <section style={{ borderBottom: "1px solid #e8e6e0", background: "#ffffff" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 24px 40px" }}>
-          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1d3557", marginBottom: 10 }}>
-            Saved
-          </p>
-          <h1 style={{ fontSize: 36, fontWeight: 400, letterSpacing: "-0.02em", color: "#0f1117", margin: "0 0 12px", fontFamily: "Georgia, 'Times New Roman', serif" }}>
-            Saved Items
-          </h1>
-          <p style={{ fontSize: 14, color: "#6b6b6b", margin: 0, maxWidth: 480, lineHeight: 1.65 }}>
-            Keep track of venues and organizations you want to revisit later.
-          </p>
-        </div>
-      </section>
+      <PageSectionHeader
+        eyebrow="Saved"
+        title="Saved Items"
+        description="Keep track of venues and organizations you want to revisit later."
+        maxWidthClassName="max-w-[900px]"
+        className="border-[#e8e6e0] bg-white"
+      />
 
       {/* Content */}
       <section style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>

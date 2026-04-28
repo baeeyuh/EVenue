@@ -5,6 +5,7 @@ import { toast } from "sonner"
 
 import { supabaseClient } from "@/lib/supabaseClient"
 import BookingDetailsModal from "@/components/common/BookingDetailsModal"
+import PageSectionHeader from "@/components/common/PageSectionHeader"
 import { getBookingDetails } from "@/lib/services/details/client"
 import type { BookingDetails } from "@/lib/services/details/types"
 import { Button } from "@/components/ui/button"
@@ -142,17 +143,12 @@ export default function OwnerBookingsContent() {
 
   return (
     <main className="min-h-screen bg-[#fafaf8] text-foreground">
-      <section className="border-b border-border/60 bg-background">
-        <div className="mx-auto max-w-6xl px-6 py-12">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-            Bookings Overview
-          </p>
-          <h1 className="font-serif text-4xl font-light tracking-tight">Bookings</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
-            Keep track of venue reservations and upcoming events.
-          </p>
-        </div>
-      </section>
+      <PageSectionHeader
+        eyebrow="Bookings Overview"
+        title="Bookings"
+        description="Keep track of venue reservations and upcoming events."
+        maxWidthClassName="max-w-6xl"
+      />
 
       <section className="mx-auto max-w-6xl space-y-4 px-6 py-10">
         {loading && (

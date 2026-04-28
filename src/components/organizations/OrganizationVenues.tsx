@@ -32,7 +32,7 @@ export default function OrganizationVenues({ venues }: { venues: VenueLike[] }) 
   return (
     <div className="space-y-4">
       <h2 className="font-serif text-xl font-light">Venues</h2>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
         {venues.map((v) => (
           <VenueCard
             key={v.id}

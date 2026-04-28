@@ -146,12 +146,12 @@ function FilterSectionContent({ initialFilters }: FilterSectionProps) {
           }
         >
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground sm:h-3.5 sm:w-3.5" />
             <Input
               placeholder="Search venues..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-10 rounded-2xl border-border/60 bg-background pl-9 text-sm"
+              className="h-10 rounded-2xl border-border/60 bg-background pl-9 text-xs sm:text-sm"
             />
           </div>
 
@@ -162,12 +162,12 @@ function FilterSectionContent({ initialFilters }: FilterSectionProps) {
                 variant="ghost"
                 onClick={() => setShowAdvancedFilters((prev) => !prev)}
                 aria-expanded={showAdvancedFilters}
-                className="h-7 gap-1 rounded-md px-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                className="h-7 gap-1 rounded-md px-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground sm:text-xs"
               >
                 <span>{showAdvancedFilters ? "Hide filters" : "Show filters"}</span>
                 <ChevronDown
                   className={cn(
-                    "h-3.5 w-3.5 transition-transform",
+                    "h-3 w-3 transition-transform sm:h-3.5 sm:w-3.5",
                     showAdvancedFilters && "rotate-180"
                   )}
                 />
@@ -177,7 +177,7 @@ function FilterSectionContent({ initialFilters }: FilterSectionProps) {
         </div>
 
         {showAdvancedFilters && (
-          <div className="mt-4 space-y-4">
+          <div className="mt-3 space-y-4 sm:mt-4">
             {/* Row 1 — Location + Inputs */}
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {/* Location combobox */}
@@ -186,20 +186,20 @@ function FilterSectionContent({ initialFilters }: FilterSectionProps) {
                   <Button
                     variant="outline"
                     role="combobox"
-                    className="h-10 w-full justify-between rounded-2xl border-border/60 bg-background px-3.5 text-sm font-normal"
+                    className="h-10 w-full justify-between rounded-2xl border-border/60 bg-background px-3.5 text-xs font-normal sm:text-sm"
                   >
                     <div className="flex items-center gap-2">
-                      <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <MapPin className="h-3 w-3 shrink-0 text-muted-foreground sm:h-3.5 sm:w-3.5" />
                       <span className={cn(!selectedLabel && "text-muted-foreground")}>
                         {selectedLabel ?? "All locations"}
                       </span>
                     </div>
-                    <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+                    <ChevronsUpDown className="h-3 w-3 text-muted-foreground sm:h-3.5 sm:w-3.5" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-64 rounded-2xl p-0" align="start">
                   <Command>
-                    <CommandInput placeholder="Search location..." className="text-sm" />
+                    <CommandInput placeholder="Search location..." className="text-xs sm:text-sm" />
                     <CommandList>
                       <CommandEmpty>No location found.</CommandEmpty>
                       <CommandGroup>
@@ -211,7 +211,7 @@ function FilterSectionContent({ initialFilters }: FilterSectionProps) {
                               setLocation(val === location ? "" : val)
                               setLocationOpen(false)
                             }}
-                            className="text-sm"
+                            className="text-xs sm:text-sm"
                           >
                             <Check
                               className={cn(
@@ -240,7 +240,7 @@ function FilterSectionContent({ initialFilters }: FilterSectionProps) {
                       const nextMin = Number(e.target.value) || 0
                       setBudgetRange([Math.min(nextMin, budgetRange[1]), budgetRange[1]])
                     }}
-                    className="h-10 rounded-2xl border-border/60 bg-background pl-6 text-sm"
+                    className="h-10 rounded-2xl border-border/60 bg-background pl-6 text-xs sm:text-sm"
                   />
                 </div>
                 <span className="text-xs text-muted-foreground">—</span>
@@ -254,7 +254,7 @@ function FilterSectionContent({ initialFilters }: FilterSectionProps) {
                       const nextMax = Number(e.target.value) || MAX_BUDGET
                       setBudgetRange([budgetRange[0], Math.max(nextMax, budgetRange[0])])
                     }}
-                    className="h-10 rounded-2xl border-border/60 bg-background pl-6 text-sm"
+                    className="h-10 rounded-2xl border-border/60 bg-background pl-6 text-xs sm:text-sm"
                   />
                 </div>
               </div>
@@ -269,7 +269,7 @@ function FilterSectionContent({ initialFilters }: FilterSectionProps) {
                     const nextMin = Number(e.target.value) || 0
                     setPaxRange([Math.min(nextMin, paxRange[1]), paxRange[1]])
                   }}
-                  className="h-10 rounded-2xl border-border/60 bg-background text-sm"
+                  className="h-10 rounded-2xl border-border/60 bg-background text-xs sm:text-sm"
                 />
                 <span className="text-xs text-muted-foreground">—</span>
                 <Input
@@ -280,7 +280,7 @@ function FilterSectionContent({ initialFilters }: FilterSectionProps) {
                     const nextMax = Number(e.target.value) || MAX_PAX
                     setPaxRange([paxRange[0], Math.max(nextMax, paxRange[0])])
                   }}
-                  className="h-10 rounded-2xl border-border/60 bg-background text-sm"
+                  className="h-10 rounded-2xl border-border/60 bg-background text-xs sm:text-sm"
                 />
               </div>
             </div>
@@ -293,7 +293,7 @@ function FilterSectionContent({ initialFilters }: FilterSectionProps) {
                     <Wallet className="h-3 w-3 text-muted-foreground" />
                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Budget</span>
                   </div>
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-[10px] text-muted-foreground sm:text-[11px]">
                     ₱{budgetRange[0].toLocaleString()} — {budgetRange[1] === MAX_BUDGET ? "Any" : `₱${budgetRange[1].toLocaleString()}`}
                   </span>
                 </div>
@@ -312,7 +312,7 @@ function FilterSectionContent({ initialFilters }: FilterSectionProps) {
                     <Users className="h-3 w-3 text-muted-foreground" />
                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Capacity</span>
                   </div>
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-[10px] text-muted-foreground sm:text-[11px]">
                     {paxRange[0]} — {paxRange[1] === MAX_PAX ? "Any" : paxRange[1]} pax
                   </span>
                 </div>
@@ -328,7 +328,7 @@ function FilterSectionContent({ initialFilters }: FilterSectionProps) {
 
             {/* Row 3 — Amenities */}
             <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-4">
-              <span className="mr-1 text-[10px] uppercase tracking-widest text-muted-foreground">Amenities</span>
+              <span className="mr-1 text-[9px] uppercase tracking-widest text-muted-foreground sm:text-[10px]">Amenities</span>
               {amenities.map((amenity) => {
                 const isSelected = selectedAmenities.includes(amenity)
                 return (
@@ -337,7 +337,7 @@ function FilterSectionContent({ initialFilters }: FilterSectionProps) {
                     type="button"
                     onClick={() => toggleAmenity(amenity)}
                     className={cn(
-                      "rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150",
+                      "rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all duration-150 sm:px-3 sm:text-xs",
                       isSelected
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-border/60 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -350,7 +350,7 @@ function FilterSectionContent({ initialFilters }: FilterSectionProps) {
               {selectedAmenities.length > 0 && (
                 <button
                   onClick={() => setSelectedAmenities([])}
-                  className="ml-auto text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                  className="ml-auto text-[10px] text-muted-foreground underline underline-offset-2 hover:text-foreground sm:text-[11px]"
                 >
                   Clear all
                 </button>

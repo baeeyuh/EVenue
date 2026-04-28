@@ -32,7 +32,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
           <FeaturedVenues filters={filters} />
         </>
       ) : (
-        <section className="mx-auto max-w-7xl px-6 pt-4">
+        <section className="pt-4">
           <FeaturedOrganizations />
         </section>
       )}

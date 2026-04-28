@@ -6,13 +6,14 @@ type StarRatingProps = {
   rating: number
   reviewCount?: number
   size?: "sm" | "md"
+  compact?: boolean
 }
 
 
-export function StarRating({ rating = 0, reviewCount, size = "md" }: StarRatingProps) {  const starSize = size === "sm" ? "w-3 h-3" : "w-4 h-4"
+export function StarRating({ rating = 0, reviewCount, size = "md", compact = false }: StarRatingProps) {  const starSize = size === "sm" ? "w-3 h-3" : "w-4 h-4"
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 min-w-0">
       <div className="flex items-center gap-0.5">
         {[1, 2, 3, 4, 5].map((i) => (
           <Star
@@ -27,10 +28,20 @@ export function StarRating({ rating = 0, reviewCount, size = "md" }: StarRatingP
       <span className={cn("font-medium text-foreground", size === "sm" ? "text-xs" : "text-sm")}>
         {rating.toFixed(1)}
       </span>
-      {reviewCount !== undefined && (
+      {reviewCount !== undefined && !compact && (
         <span className={cn("text-muted-foreground", size === "sm" ? "text-[11px]" : "text-xs")}>
           ({reviewCount} reviews)
         </span>
+      )}
+      {reviewCount !== undefined && compact && (
+        <>
+          <span className={cn("text-muted-foreground sm:hidden", size === "sm" ? "text-[11px]" : "text-xs")}>
+            ({reviewCount})
+          </span>
+          <span className={cn("hidden text-muted-foreground sm:inline", size === "sm" ? "text-[11px]" : "text-xs")}>
+            ({reviewCount} reviews)
+          </span>
+        </>
       )}
     </div>
   )

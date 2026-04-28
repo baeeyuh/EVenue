@@ -50,7 +50,7 @@ export default function RootLayout({
     >
       <body
         suppressHydrationWarning
-        className="min-h-full flex flex-col pb-[var(--app-navbar-bottom-height,0px)] lg:pb-0"
+        className="min-h-full flex flex-col pb-(--app-navbar-bottom-height) lg:pb-0"
       >
         <AppNavbar />
         {children}

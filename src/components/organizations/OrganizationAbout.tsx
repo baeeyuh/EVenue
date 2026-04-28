@@ -3,7 +3,6 @@ import {
   Users, Clock, Sparkles, MapPin,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import type { Organization } from "@/lib/types"
 
 type OrganizationSocial = {
@@ -37,29 +36,29 @@ export default function OrganizationAbout({
   const facebook = org.facebook ?? socialFacebook
 
   return (
-    <div className="space-y-6 sticky top-24">
+    <div className="space-y-5 lg:sticky lg:top-24 lg:space-y-6">
 
       {/* About */}
-      <div className="rounded-2xl border border-border/60 p-5 space-y-3">
-        <h3 className="font-serif text-lg font-light">About</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">{org.description}</p>
+      <div className="space-y-3 rounded-2xl border border-border/60 p-4 sm:p-5">
+        <h3 className="font-serif text-base font-light sm:text-lg">About</h3>
+        <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">{org.description}</p>
 
-        <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+        <div className="flex items-center gap-2 pt-1 text-[11px] text-muted-foreground sm:text-xs">
           <Clock className="w-3.5 h-3.5 shrink-0" />
           {org.opening_hours ?? org.openingHours}
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 text-[11px] text-muted-foreground sm:text-xs">
           <MapPin className="w-3.5 h-3.5 shrink-0" />
           {org.location}
         </div>
       </div>
 
       {/* Specializations */}
-      <div className="rounded-2xl border border-border/60 p-5 space-y-3">
+      <div className="space-y-3 rounded-2xl border border-border/60 p-4 sm:p-5">
         <div className="flex items-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
-          <h3 className="font-serif text-lg font-light">Specializes In</h3>
+          <h3 className="font-serif text-base font-light sm:text-lg">Specializes In</h3>
         </div>
         <div className="flex flex-wrap gap-2">
           {org.specializations?.map((s: string) => (
@@ -71,8 +70,8 @@ export default function OrganizationAbout({
       </div>
 
       {/* Contact */}
-      <div className="rounded-2xl border border-border/60 p-5 space-y-3">
-        <h3 className="font-serif text-lg font-light">Contact</h3>
+      <div className="space-y-3 rounded-2xl border border-border/60 p-4 sm:p-5">
+        <h3 className="font-serif text-base font-light sm:text-lg">Contact</h3>
         <div className="space-y-2.5">
           {(
             [
@@ -104,7 +103,7 @@ export default function OrganizationAbout({
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors group"
+                className="group flex items-center gap-2.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground sm:text-xs"
               >
                 <Icon className="w-3.5 h-3.5 shrink-0 group-hover:text-primary transition-colors" />
                 <span className="truncate">{label}</span>
@@ -112,12 +111,6 @@ export default function OrganizationAbout({
             ))}
         </div>
       </div>
-
-      {/* Inquiry CTA */}
-      <Button className="w-full rounded-full bg-primary hover:bg-primary/90">
-        Send Inquiry
-      </Button>
-
     </div>
   )
 }
