@@ -1,7 +1,6 @@
 import Image from "next/image"
-import { MapPin, Globe } from "lucide-react"
+import { MapPin } from "lucide-react"
 import { StarRating } from "@/components/common/StarRating"
-import { Button } from "@/components/ui/button"
 
 type OrganizationLike = {
   name: string
@@ -18,17 +17,12 @@ type OrganizationLike = {
 
 export default function OrganizationHero({ org }: { org: OrganizationLike }) {
   const coverImage = org.cover_image ?? org.coverImage
-  const websiteHref = org.website
-    ? org.website.startsWith("http")
-      ? org.website
-      : `https://${org.website}`
-    : undefined
 
   return (
     <div className="relative">
 
       {/* Cover image */}
-      <div className="relative h-64 w-full overflow-hidden md:h-80">
+  <div className="relative h-52 w-full overflow-hidden sm:h-64 md:h-80">
         {coverImage ? (
           <Image
             src={coverImage}
@@ -45,51 +39,32 @@ export default function OrganizationHero({ org }: { org: OrganizationLike }) {
       </div>
 
       {/* Logo row — sits below cover, logo overlaps via negative margin */}
-      <div className="mx-auto max-w-7xl px-6">
+  <div className="mx-auto max-w-7xl px-4 sm:px-6">
 
         {/* Logo overlapping cover */}
-        <div className="relative -mt-12 mb-4 flex items-end justify-between gap-4">
-          <div className="relative w-24 h-24 rounded-2xl overflow-hidden border-4 border-background shadow-lg shrink-0 bg-muted">
+        <div className="relative -mt-10 mb-3 flex items-end gap-3 sm:-mt-12 sm:mb-4 sm:gap-4">
+          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-4 border-background bg-muted shadow-lg sm:h-24 sm:w-24">
             {org.logo ? (
               <Image
                 src={org.logo}
                 alt={org.name}
                 fill
                 className="object-cover"
-                sizes="96px"
+                sizes="(max-width: 640px) 80px, 96px"
               />
             ) : (
               <div className="w-full h-full bg-muted" />
             )}
           </div>
-
-          {/* CTAs aligned to bottom of logo */}
-          <div className="flex gap-2 pb-1">
-            {websiteHref && (
-              <Button
-                variant="outline"
-                className="rounded-full text-sm gap-2"
-                asChild
-              >
-                <a href={websiteHref} target="_blank" rel="noopener noreferrer">
-                  <Globe className="w-3.5 h-3.5" />
-                  Visit Website
-                </a>
-              </Button>
-            )}
-            <Button className="rounded-full text-sm bg-primary">
-              Send Inquiry
-            </Button>
-          </div>
         </div>
 
         {/* Name + location + stars */}
-        <div className="pb-6 border-b border-border/60 space-y-1.5">
-          <h1 className="font-serif text-3xl font-light leading-tight">
+        <div className="space-y-1.5 border-b border-border/60 pb-5 sm:pb-6">
+          <h1 className="font-serif text-2xl font-light leading-tight sm:text-3xl">
             {org.name}
           </h1>
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <MapPin className="w-3.5 h-3.5 shrink-0" />
+          <div className="flex items-center gap-1 text-xs text-muted-foreground sm:text-sm">
+            <MapPin className="h-3.5 w-3.5 shrink-0" />
             {org.location}
           </div>
           <StarRating rating={org.rating ?? 0} reviewCount={org.review_count ?? org.reviewCount ?? 0} size="sm" />

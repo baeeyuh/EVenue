@@ -2,15 +2,25 @@
 
 import { useEffect, useState } from "react"
 import { supabaseClient } from "@/lib/supabaseClient"
-import { CalendarDays, Clock, ArrowUpRight } from "lucide-react"
+import { CalendarDays, Clock } from "lucide-react"
+import BookingDetailsModal from "@/components/common/BookingDetailsModal"
+import PageSectionHeader from "@/components/common/PageSectionHeader"
+import { getBookingDetails } from "@/lib/services/details/client"
+import type { BookingDetails } from "@/lib/services/details/types"
+import { toast } from "sonner"
 
 type BookingItem = {
   id: string
   code: string | null
   status: string | null
+  inquiry_id: string | null
   start_date: string
   end_date: string | null
+  event_date: string | null
+  guest_count: number | null
+  inquiry_message: string | null
   venue_name: string
+  created_at: string | null
 }
 
 function formatBookingDateLong(startDate: string) {
@@ -49,6 +59,9 @@ export default function ClientBookingsContent() {
   const [bookings, setBookings] = useState<BookingItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedBooking, setSelectedBooking] = useState<BookingDetails | null>(null)
+  const [detailsCache, setDetailsCache] = useState<Record<string, BookingDetails>>({})
+  const [openingBookingId, setOpeningBookingId] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -91,29 +104,59 @@ export default function ClientBookingsContent() {
     return () => { active = false }
   }, [])
 
-  return (
-    <main style={{ minHeight: "100vh", background: "#fafaf8", color: "#1a1a1a", fontFamily: "var(--font-sans, sans-serif)" }}>
+  async function handleOpen(bookingId: string) {
+    const cached = detailsCache[bookingId]
 
-      {/* Page Header */}
-      <section style={{ borderBottom: "1px solid #e8e6e0", background: "#ffffff" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 24px 40px" }}>
-          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1d3557", marginBottom: 10 }}>
-            My Bookings
-          </p>
-          <h1 style={{ fontSize: 36, fontWeight: 400, letterSpacing: "-0.02em", color: "#0f1117", margin: "0 0 12px", fontFamily: "Georgia, 'Times New Roman', serif" }}>
-            Reservations
-          </h1>
-          <p style={{ fontSize: 14, color: "#6b6b6b", margin: 0, maxWidth: 480, lineHeight: 1.65 }}>
-            View your reservation progress, event schedule, and confirmed venue bookings.
-          </p>
-        </div>
-      </section>
+    if (cached) {
+      setSelectedBooking(cached)
+      return
+    }
+
+    setOpeningBookingId(bookingId)
+
+    try {
+      const booking = await getBookingDetails(bookingId, "client")
+      setDetailsCache((prev) => ({ ...prev, [bookingId]: booking }))
+      setSelectedBooking(booking)
+    } catch (detailsFetchError: unknown) {
+      const message =
+        detailsFetchError instanceof Error
+          ? detailsFetchError.message
+          : "Failed to load booking details"
+      toast.error("Unable to load booking details", { description: message })
+    } finally {
+      setOpeningBookingId(null)
+    }
+  }
+
+  return (
+    <>
+      <main style={{ minHeight: "100vh", background: "#fafaf8", color: "#1a1a1a", fontFamily: "var(--font-sans, sans-serif)" }}>
+        <PageSectionHeader
+          eyebrow="My Bookings"
+          title="Reservations"
+          description="View your reservation progress, event schedule, and confirmed venue bookings."
+          maxWidthClassName="max-w-[900px]"
+          className="border-[#e8e6e0] bg-white"
+        />
 
       {/* Content */}
       <section style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
 
         {loading && (
-          <p style={{ fontSize: 14, color: "#9a9a9a" }}>Loading bookings…</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                style={{
+                  height: 112,
+                  borderRadius: 16,
+                  background: "#eceae4",
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }}
+              />
+            ))}
+          </div>
         )}
         {error && !loading && (
           <p style={{ fontSize: 14, color: "#c0392b" }}>{error}</p>
@@ -126,7 +169,7 @@ export default function ClientBookingsContent() {
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {bookings.map((booking) => (
+          {!loading && bookings.map((booking) => (
             <div
               key={booking.id}
               style={{
@@ -185,14 +228,26 @@ export default function ClientBookingsContent() {
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = "#f0f3f8"; e.currentTarget.style.borderColor = "#1d3557" }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "#c8cdd8" }}
+                  onClick={() => void handleOpen(booking.id)}
+                  disabled={openingBookingId === booking.id}
                 >
-                  View Details <ArrowUpRight size={13} />
+                  {openingBookingId === booking.id ? "Loading..." : "View Details"}
                 </button>
               </div>
             </div>
           ))}
         </div>
       </section>
-    </main>
+
+      </main>
+
+      {selectedBooking && (
+        <BookingDetailsModal
+          booking={selectedBooking}
+          open={Boolean(selectedBooking)}
+          onClose={() => setSelectedBooking(null)}
+        />
+      )}
+    </>
   )
 }

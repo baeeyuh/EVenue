@@ -48,7 +48,10 @@ export default function RootLayout({
         "font-sans"
       )}
     >
-      <body className="min-h-full flex flex-col">
+      <body
+        suppressHydrationWarning
+        className="min-h-full flex flex-col pb-(--app-navbar-bottom-height) lg:pb-0"
+      >
         <AppNavbar />
         {children}
         <Toaster richColors position="top-right" />

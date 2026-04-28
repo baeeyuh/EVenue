@@ -3,23 +3,20 @@ import { getOwnerOrgIds } from "@/lib/services/owner/organizations"
 
 export type OwnerBookingRow = {
   id: string
+  code: string | null
+  organization_id: string | null
   venue_id: string | null
   venue_name: string
+  inquiry_id: string | null
   client_id: string | null
   event_type: string | null
   event_date: string | null
+  end_date: string | null
   guest_count: number | null
   status: string | null
   price: number | null
   created_at: string | null
-}
-
-type BookingBaseRow = {
-  id: string
-  venue_id: string | null
-  start_date: string | null
-  status: string | null
-  created_at: string | null
+  inquiry_message: string | null
 }
 
 export async function fetchOwnerBookings(
@@ -30,49 +27,76 @@ export async function fetchOwnerBookings(
 
   if (orgIds.length === 0) return []
 
-  const { data: venuesData, error: venuesError } = await client
-    .from("venues")
-    .select("id, name")
-    .in("organization_id", orgIds)
-
-  if (venuesError) {
-    console.error(venuesError)
-    throw new Error("Failed to fetch owner venues for bookings")
-  }
-
-  const venues = (venuesData ?? []) as Array<{ id: string; name: string | null }>
-  const venueIds = venues.map((venue) => venue.id)
-  const venueNameMap = new Map(
-    venues.map((venue) => [venue.id, venue.name ?? "Unknown venue"])
-  )
-
-  if (venueIds.length === 0) return []
-
   const { data, error } = await client
-    .from("bookings")
-    .select("id, venue_id, start_date, status, created_at")
-    .in("venue_id", venueIds)
-    .order("start_date", { ascending: true })
+    .from("owner_bookings_view")
+    .select("*")
+    .in("organization_id", orgIds)
+    .order("event_date", { ascending: true })
 
   if (error) {
     console.error(error)
     throw new Error("Failed to fetch owner bookings")
   }
 
-  const bookings = (data as BookingBaseRow[] | null) ?? []
+  const bookings = (data ?? []) as OwnerBookingRow[]
 
-  return bookings.map((booking) => ({
-    id: booking.id,
-    venue_id: booking.venue_id,
-    client_id: null,
-    event_type: null,
-    event_date: booking.start_date,
-    guest_count: null,
-    status: booking.status,
-    price: null,
-    created_at: booking.created_at,
-    venue_name: booking.venue_id
-      ? venueNameMap.get(booking.venue_id) ?? "Unknown venue"
-      : "Unknown venue",
-  }))
+  if (bookings.length === 0) {
+    return []
+  }
+
+  const bookingIds = bookings.map((booking) => booking.id)
+  let bookingInquiryMap = new Map<string, string | null>()
+
+  const explicitInquiryIds = bookings
+    .map((booking) => booking.inquiry_id)
+    .filter((value): value is string => Boolean(value))
+
+  if (explicitInquiryIds.length > 0) {
+    bookingInquiryMap = new Map(
+      bookings.map((booking) => [booking.id, booking.inquiry_id ?? null])
+    )
+  } else {
+    const bookingLookup = await client
+      .from("bookings")
+      .select("id, inquiry_id")
+      .in("id", bookingIds)
+
+    if (!bookingLookup.error && bookingLookup.data) {
+      bookingInquiryMap = new Map(
+        (bookingLookup.data as Array<{ id: string; inquiry_id: string | null }>).map((row) => [
+          row.id,
+          row.inquiry_id,
+        ])
+      )
+    }
+  }
+
+  const inquiryIds = Array.from(new Set(Array.from(bookingInquiryMap.values()).filter(Boolean))) as string[]
+  let inquiryMessageMap = new Map<string, string>()
+
+  if (inquiryIds.length > 0) {
+    const inquiryLookup = await client
+      .from("inquiries")
+      .select("id, message")
+      .in("id", inquiryIds)
+
+    if (!inquiryLookup.error && inquiryLookup.data) {
+      inquiryMessageMap = new Map(
+        (inquiryLookup.data as Array<{ id: string; message: string | null }>).map((row) => [
+          row.id,
+          row.message ?? "",
+        ])
+      )
+    }
+  }
+
+  return bookings.map((booking) => {
+    const inquiryId = booking.inquiry_id ?? bookingInquiryMap.get(booking.id) ?? null
+
+    return {
+      ...booking,
+      inquiry_id: inquiryId,
+      inquiry_message: inquiryId ? inquiryMessageMap.get(inquiryId) ?? null : null,
+    }
+  })
 }

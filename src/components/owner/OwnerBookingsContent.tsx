@@ -1,21 +1,31 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import { supabaseClient } from "@/lib/supabaseClient"
+import BookingDetailsModal from "@/components/common/BookingDetailsModal"
+import PageSectionHeader from "@/components/common/PageSectionHeader"
+import { getBookingDetails } from "@/lib/services/details/client"
+import type { BookingDetails } from "@/lib/services/details/types"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 type OwnerBooking = {
   id: string
+  code: string | null
+  inquiry_id: string | null
   venue_id: string | null
   venue_name: string
   client_id: string | null
   event_type: string | null
   event_date: string | null
+  end_date: string | null
   guest_count: number | null
   status: string | null
   price: number | null
   created_at: string | null
+  inquiry_message: string | null
 }
 
 function formatDate(value: string | null) {
@@ -50,6 +60,9 @@ export default function OwnerBookingsContent() {
   const [bookings, setBookings] = useState<OwnerBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedBooking, setSelectedBooking] = useState<BookingDetails | null>(null)
+  const [detailsCache, setDetailsCache] = useState<Record<string, BookingDetails>>({})
+  const [openingBookingId, setOpeningBookingId] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -103,22 +116,48 @@ export default function OwnerBookingsContent() {
     }
   }, [])
 
+  async function handleOpen(bookingId: string) {
+    const cached = detailsCache[bookingId]
+
+    if (cached) {
+      setSelectedBooking(cached)
+      return
+    }
+
+    setOpeningBookingId(bookingId)
+
+    try {
+      const booking = await getBookingDetails(bookingId, "owner")
+      setDetailsCache((prev) => ({ ...prev, [bookingId]: booking }))
+      setSelectedBooking(booking)
+    } catch (detailsFetchError: unknown) {
+      const message =
+        detailsFetchError instanceof Error
+          ? detailsFetchError.message
+          : "Failed to load booking details"
+      toast.error("Unable to load booking details", { description: message })
+    } finally {
+      setOpeningBookingId(null)
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#fafaf8] text-foreground">
-      <section className="border-b border-border/60 bg-background">
-        <div className="mx-auto max-w-6xl px-6 py-12">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-            Confirmed Events
-          </p>
-          <h1 className="font-serif text-4xl font-light tracking-tight">Bookings</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
-            Keep track of confirmed venue reservations and upcoming events.
-          </p>
-        </div>
-      </section>
+      <PageSectionHeader
+        eyebrow="Bookings Overview"
+        title="Bookings"
+        description="Keep track of venue reservations and upcoming events."
+        maxWidthClassName="max-w-6xl"
+      />
 
       <section className="mx-auto max-w-6xl space-y-4 px-6 py-10">
-        {loading && <p className="text-sm text-muted-foreground">Loading bookings...</p>}
+        {loading && (
+          <div className="space-y-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Card key={index} className="h-28 animate-pulse border-border/60 bg-muted" />
+            ))}
+          </div>
+        )}
 
         {error && !loading && <p className="text-sm text-destructive">{error}</p>}
 
@@ -138,10 +177,10 @@ export default function OwnerBookingsContent() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-serif text-2xl font-light">
-                      {booking.event_type || "Event"}
+                      {booking.venue_name}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {booking.venue_name}
+                      Booking code: {booking.code ?? booking.id.slice(0, 8).toUpperCase()}
                     </p>
                   </div>
 
@@ -161,10 +200,30 @@ export default function OwnerBookingsContent() {
                     Revenue: ₱{Number(booking.price ?? 0).toLocaleString()}
                   </span>
                 </div>
+
+                <div className="flex justify-end pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-full border-border/60"
+                    onClick={() => void handleOpen(booking.id)}
+                    disabled={openingBookingId === booking.id}
+                  >
+                    {openingBookingId === booking.id ? "Loading..." : "View Details"}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
       </section>
+
+      {selectedBooking && (
+        <BookingDetailsModal
+          booking={selectedBooking}
+          open={Boolean(selectedBooking)}
+          onClose={() => setSelectedBooking(null)}
+        />
+      )}
     </main>
   )
 }

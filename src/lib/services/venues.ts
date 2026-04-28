@@ -5,6 +5,7 @@ import { DEFAULT_VENUE_FILTERS, type VenueFilters } from "@/lib/venue-filters"
 export type VenueDetailsRow = {
   id: string
   organization_id: string | null
+  organization_name: string | null
   name: string
   location: string | null
   capacity: number | null
@@ -13,6 +14,8 @@ export type VenueDetailsRow = {
   rating: number | null
   review_count: number | null
   description: string | null
+  additional_info: string | null
+  amenities: string[] | null
   venue_type: string | null
   is_available: boolean | null
 }
@@ -56,64 +59,58 @@ function organizationInitials(name: string): string {
 export async function fetchVenues(filters: Partial<VenueFilters> = {}): Promise<Venue[]> {
   const resolved = { ...DEFAULT_VENUE_FILTERS, ...filters }
 
-  const { data, error } = await supabaseServer.rpc("filter_venues", {
-    min_budget: resolved.minBudget,
-    max_budget: resolved.maxBudget,
-    min_pax: resolved.minPax,
-    max_pax: resolved.maxPax,
-    location_param: resolved.location || null,
-    search: resolved.search || null,
-    amenities: resolved.amenities.length > 0 ? resolved.amenities : null,
-  })
+  let viewQuery = supabaseServer
+    .from("venue_full_details")
+    .select("id, organization_id, organization_name, name, location, capacity, price, image, rating, review_count, description, additional_info, amenities, venue_type, is_available, created_at")
+    .gte("price", resolved.minBudget)
+    .lte("price", resolved.maxBudget)
+    .gte("capacity", resolved.minPax)
+    .lte("capacity", resolved.maxPax)
 
-  if (error) {
-    console.error(error)
+  if (resolved.location) {
+    viewQuery = viewQuery.ilike("location", `%${resolved.location}%`)
+  }
+
+  if (resolved.search) {
+    const escapedSearch = resolved.search.replace(/,/g, "")
+    viewQuery = viewQuery.or(`name.ilike.%${escapedSearch}%,location.ilike.%${escapedSearch}%,description.ilike.%${escapedSearch}%`)
+  }
+
+  if (resolved.amenities.length > 0) {
+    viewQuery = viewQuery.contains("amenities", resolved.amenities)
+  }
+
+  const viewResult = await viewQuery.order("created_at", { ascending: false })
+
+  if (viewResult.error) {
+    console.error(viewResult.error)
     throw new Error("Failed to fetch venues")
   }
 
-  const venueRows = (data ?? []) as VenueRpcRow[]
-  const organizationIds = Array.from(
-    new Set(venueRows.map((venue) => venue.organization_id).filter((id): id is string => Boolean(id))),
-  )
-
-  const organizationNamesById = new Map<string, string>()
-
-  if (organizationIds.length > 0) {
-    const { data: organizationsData, error: organizationsError } = await supabaseServer
-      .from("organizations")
-      .select("id, name")
-      .in("id", organizationIds)
-
-    if (organizationsError) {
-      console.error(organizationsError)
-    } else {
-      ;((organizationsData ?? []) as Array<{ id: string; name: string | null }>).forEach((organization) => {
-        organizationNamesById.set(organization.id, organization.name ?? "")
-      })
-    }
-  }
+  const venueRows: VenueRpcRow[] = (viewResult.data ?? []) as VenueRpcRow[]
 
   return venueRows.map((venue) => {
-    const organizationName = venue.organization_id ? organizationNamesById.get(venue.organization_id) ?? "" : ""
+    const organizationName = venue.organization_name ?? ""
 
     return {
-    id: venue.id,
-    organizationId: venue.organization_id ?? "",
-    name: venue.name,
-    organizationName: organizationName || undefined,
-    location: venue.location ?? "",
-    capacity: venue.capacity ?? 0,
-    price: venue.price !== null ? `₱${Number(venue.price).toLocaleString()}` : "Price on request",
-    image: venue.image ?? "",
-    amenities: [],
-    rating: Number(venue.rating ?? 0),
-    reviewCount: venue.review_count ?? 0,
-    ownerName: organizationName || "Venue Owner",
-    ownerInitials: organizationName ? organizationInitials(organizationName) : "VO",
-    description: venue.description ?? undefined,
-    venueType: venue.venue_type ?? undefined,
-    isAvailable: venue.is_available ?? true,
-  }
+      id: venue.id,
+      organizationId: venue.organization_id ?? "",
+      name: venue.name,
+      organizationName: organizationName || undefined,
+      location: venue.location ?? "",
+      capacity: venue.capacity ?? 0,
+      price: venue.price !== null ? `₱${Number(venue.price).toLocaleString()}` : "Price on request",
+      image: venue.image ?? "",
+      amenities: venue.amenities ?? [],
+      rating: Number(venue.rating ?? 0),
+      reviewCount: venue.review_count ?? 0,
+      ownerName: organizationName || "Venue Owner",
+      ownerInitials: organizationName ? organizationInitials(organizationName) : "VO",
+      description: venue.description ?? undefined,
+      additionalInfo: venue.additional_info ?? undefined,
+      venueType: venue.venue_type ?? undefined,
+      isAvailable: venue.is_available ?? true,
+    }
   })
 }
 
@@ -126,17 +123,39 @@ export async function fetchFeaturedVenues(): Promise<Venue[]> {
 }
 
 export async function fetchVenuesByOrganizationId(id: string): Promise<VenueDetailsRow[]> {
-  const { data, error } = await supabaseServer
+  const fullResult = await supabaseServer
+    .from("venue_full_details")
+    .select("id, organization_id, organization_name, name, location, capacity, price, image, rating, review_count, description, additional_info, amenities, venue_type, is_available")
+    .eq("organization_id", id)
+
+  if (!fullResult.error) {
+    return (fullResult.data as VenueDetailsRow[] | null) ?? []
+  }
+
+  const errorText = `${String((fullResult.error as { message?: string } | null)?.message ?? "")}`
+  const isMissingColumns = /column|amenities|additional_info|schema cache/i.test(errorText)
+
+  if (!isMissingColumns) {
+    console.error(fullResult.error)
+    return []
+  }
+
+  const legacyResult = await supabaseServer
     .from("venues")
     .select("id, organization_id, name, location, capacity, price, image, rating, review_count, description, venue_type, is_available")
     .eq("organization_id", id)
 
-  if (error) {
-    console.error(error)
+  if (legacyResult.error) {
+    console.error(legacyResult.error)
     return []
   }
 
-  return (data as VenueDetailsRow[] | null) ?? []
+  return ((legacyResult.data as VenueDetailsRow[] | null) ?? []).map((venue) => ({
+    ...venue,
+    organization_name: null,
+    amenities: null,
+    additional_info: null,
+  }))
 }
 
 export async function createAvailabilityRequest(payload: AvailabilityRequestPayload) {
@@ -148,7 +167,7 @@ export async function createAvailabilityRequest(payload: AvailabilityRequestPayl
     guest_count: payload.guestCount ?? null,
     event_type: payload.eventType ?? null,
     notes: payload.notes ?? null,
-    status: "pending",
+    status: "Pending",
   })
 
   if (error) {

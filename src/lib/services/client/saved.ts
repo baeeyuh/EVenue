@@ -7,6 +7,7 @@ export type ClientSavedItemRow = {
   created_at: string | null
   name: string
   location: string
+  organization_id?: string | null
 }
 
 export async function fetchClientSavedItems(client: SupabaseClient, userId: string): Promise<ClientSavedItemRow[]> {
@@ -48,24 +49,25 @@ export async function fetchClientSavedItems(client: SupabaseClient, userId: stri
     .filter((item) => item.item_type === "organization")
     .map((item) => item.item_id)
 
-  let venueMap = new Map<string, { name: string; location: string }>()
+  let venueMap = new Map<string, { name: string; location: string; organization_id: string | null }>()
   let organizationMap = new Map<string, { name: string; location: string }>()
 
   if (venueIds.length > 0) {
     const { data: venuesData, error: venuesError } = await client
-      .from("venues")
-      .select("id, name, location")
+      .from("venue_full_details")
+      .select("id, name, location, organization_id")
       .in("id", venueIds)
 
     if (venuesError) {
       console.error(venuesError)
     } else {
       venueMap = new Map(
-        ((venuesData ?? []) as Array<{ id: string; name: string | null; location: string | null }>).map((venue) => [
+        ((venuesData ?? []) as Array<{ id: string; name: string | null; location: string | null; organization_id: string | null }>).map((venue) => [
           venue.id,
           {
             name: venue.name ?? "Unknown venue",
             location: venue.location ?? "",
+            organization_id: venue.organization_id ?? null,
           },
         ])
       )
@@ -100,6 +102,7 @@ export async function fetchClientSavedItems(client: SupabaseClient, userId: stri
         ...item,
         name: venue?.name ?? "Unknown venue",
         location: venue?.location ?? "",
+        organization_id: venue?.organization_id ?? null,
       }
     }
 

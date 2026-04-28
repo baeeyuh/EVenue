@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { fetchClientInquiryById } from "@/lib/services/client/inquiries"
+import { getClientInquiryDetails } from "@/lib/services/details/server"
 import { getAuthenticatedUserId } from "@/lib/services/client/auth"
 
 export async function GET(
@@ -14,7 +14,7 @@ export async function GET(
     }
 
     const { id } = await context.params
-    const inquiry = await fetchClientInquiryById(client, userId, id)
+  const inquiry = await getClientInquiryDetails(client, userId, id)
 
     if (!inquiry) {
       return NextResponse.json({ message: "Inquiry not found" }, { status: 404 })

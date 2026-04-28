@@ -1,0 +1,556 @@
+"use client"
+
+import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { Building2, MapPin, Users, Layers2, CheckCircle2, ArrowLeftIcon, PlusIcon } from "lucide-react"
+
+import { supabaseClient } from "@/lib/supabaseClient"
+import { Button } from "@/components/ui/button"
+import PageSectionHeader from "@/components/common/PageSectionHeader"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+type OwnerVenue = {
+  id: string
+  name: string
+  location: string | null
+  capacity: number | null
+  price: number | null
+  image: string | null
+  description: string | null
+  amenities: string[] | null
+  additional_info: string | null
+  is_available: boolean | null
+  venue_type: string | null
+}
+
+type OwnerVenueEditorContentProps = {
+  mode: "add" | "edit"
+  venueId?: string
+}
+
+const VENUE_TYPES = [
+  "Event Hall",
+  "Ballroom",
+  "Garden Venue",
+  "Rooftop",
+  "Hotel Function Room",
+  "Resort",
+  "Conference Space",
+  "Private Dining",
+]
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback
+}
+
+function normalizeAmenity(name: string) {
+  return name.trim().toLowerCase()
+}
+
+function dedupeAmenities(names: string[]) {
+  const unique = new Map<string, string>()
+
+  for (const raw of names) {
+    if (typeof raw !== "string") continue
+    const trimmed = raw.trim()
+    if (!trimmed) continue
+
+    const normalized = normalizeAmenity(trimmed)
+    if (!unique.has(normalized)) {
+      unique.set(normalized, trimmed)
+    }
+  }
+
+  return Array.from(unique.values())
+}
+
+export default function OwnerVenueEditorContent({ mode, venueId }: OwnerVenueEditorContentProps) {
+  const router = useRouter()
+
+  const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [loading, setLoading] = useState(mode === "edit")
+  const [saving, setSaving] = useState(false)
+
+  const [name, setName] = useState("")
+  const [location, setLocation] = useState("")
+  const [capacity, setCapacity] = useState("")
+  const [price, setPrice] = useState("")
+  const [image, setImage] = useState("")
+  const [description, setDescription] = useState("")
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
+  const [amenityOptions, setAmenityOptions] = useState<string[]>([])
+  const [customAmenity, setCustomAmenity] = useState("")
+  const [additionalInfo, setAdditionalInfo] = useState("")
+  const [venueType, setVenueType] = useState("")
+  const [isAvailable, setIsAvailable] = useState("true")
+
+  const [error, setError] = useState<string | null>(null)
+
+  const title = useMemo(() => (mode === "add" ? "Add Venue" : "Edit Venue"), [mode])
+
+  useEffect(() => {
+    let active = true
+
+    async function bootstrap() {
+      const {
+        data: { session },
+      } = await supabaseClient.auth.getSession()
+
+      const token = session?.access_token ?? null
+      if (!active) return
+
+      setAccessToken(token)
+
+      if (!token) {
+        setError("Please log in to manage your venues")
+        setLoading(false)
+        return
+      }
+
+      try {
+        const amenitiesQuery = supabaseClient
+          .from("amenities")
+          .select("name")
+          .order("name", { ascending: true })
+
+        const venuesResponse = await fetch("/api/owner/venues", {
+          cache: "no-store",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        const [amenitiesResult, venuesJson] = await Promise.all([
+          amenitiesQuery,
+          venuesResponse.json(),
+        ])
+
+        const optionNames = ((amenitiesResult.data ?? []) as Array<{ name: string | null }>)
+          .map((row) => row.name?.trim() ?? "")
+          .filter(Boolean)
+
+        if (!active) return
+        setAmenityOptions(dedupeAmenities(optionNames))
+
+        const data = venuesJson as OwnerVenue[] | { message?: string }
+
+        if (!venuesResponse.ok) {
+          throw new Error((data as { message?: string })?.message || "Failed to load venue")
+        }
+
+        if (mode !== "edit") {
+          setLoading(false)
+          return
+        }
+
+        if (!venueId) {
+          throw new Error("Missing venue id")
+        }
+
+        const venue = (data as OwnerVenue[]).find((item) => item.id === venueId)
+
+        if (!venue) {
+          throw new Error("Venue not found")
+        }
+
+        if (!active) return
+
+        setName(venue.name)
+        setLocation(venue.location ?? "")
+        setCapacity(venue.capacity ? String(venue.capacity) : "")
+        setPrice(venue.price ? String(venue.price) : "")
+        setImage(venue.image ?? "")
+        setDescription(venue.description ?? "")
+        const venueAmenities = dedupeAmenities(venue.amenities ?? [])
+        setSelectedAmenities(venueAmenities)
+        setAmenityOptions((current) => dedupeAmenities([...current, ...venueAmenities]))
+        setAdditionalInfo(venue.additional_info ?? "")
+        setVenueType(venue.venue_type ?? "")
+        setIsAvailable(venue.is_available === false ? "false" : "true")
+      } catch (bootstrapError: unknown) {
+        if (!active) return
+        setError(getErrorMessage(bootstrapError, "Failed to load venue"))
+      } finally {
+        if (!active) return
+        setLoading(false)
+      }
+    }
+
+    void bootstrap()
+
+    return () => {
+      active = false
+    }
+  }, [mode, venueId])
+
+  function toggleAmenity(amenity: string, checked: boolean) {
+    const normalized = normalizeAmenity(amenity)
+
+    setSelectedAmenities((current) => {
+      if (checked) {
+        return dedupeAmenities([...current, amenity])
+      }
+
+      return current.filter((item) => normalizeAmenity(item) !== normalized)
+    })
+  }
+
+  function addCustomAmenity() {
+    const trimmed = customAmenity.trim()
+    if (!trimmed) return
+
+    setAmenityOptions((current) => dedupeAmenities([...current, trimmed]))
+    setSelectedAmenities((current) => dedupeAmenities([...current, trimmed]))
+    setCustomAmenity("")
+  }
+
+  async function handleSubmit() {
+    if (!accessToken) {
+      setError("Please log in to continue")
+      return
+    }
+
+    if (!name.trim()) {
+      setError("Venue name is required")
+      return
+    }
+
+    setSaving(true)
+    setError(null)
+
+    try {
+      const payload = {
+        ...(mode === "edit" ? { id: venueId } : {}),
+        name,
+        location,
+        capacity: capacity ? Number(capacity) : null,
+        price: price ? Number(price) : null,
+        image,
+        description,
+        amenities: dedupeAmenities(selectedAmenities),
+        additionalInfo,
+        venueType,
+        isAvailable: isAvailable === "true",
+      }
+
+      const response = await fetch("/api/owner/venues", {
+        method: mode === "add" ? "POST" : "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      })
+
+      const data = (await response.json()) as OwnerVenue | { message?: string }
+
+      if (!response.ok) {
+        throw new Error((data as { message?: string })?.message || `Failed to ${mode} venue`)
+      }
+
+      const status = mode === "add" ? "created" : "updated"
+      router.push(`/dashboard/owner/venues?status=${status}`)
+    } catch (submitError: unknown) {
+      setError(getErrorMessage(submitError, `Failed to ${mode} venue`))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-[#fafaf8] text-foreground">
+      <PageSectionHeader
+        eyebrow="Venue Management"
+        title={title}
+        description={
+          mode === "add"
+            ? "Create a complete venue listing with details, media, and pricing."
+            : "Update all venue information, including details, image, and availability."
+        }
+        maxWidthClassName="max-w-4xl"
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-full border-border/60"
+            onClick={() => router.push("/dashboard/owner/venues")}
+          >
+            <ArrowLeftIcon className="mr-2 h-4 w-4" />
+            Back to Venues
+          </Button>
+        }
+      />
+
+      <section className="mx-auto max-w-4xl px-6 py-10">
+        <Card className="border-border/60">
+          <CardHeader>
+            <CardTitle className="text-base">Venue information</CardTitle>
+            <CardDescription>
+              Fill in all fields relevant to how your venue appears to clients.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="space-y-5">
+            {loading && (
+              <div className="space-y-3">
+                <div className="h-11 animate-pulse rounded-xl bg-muted" />
+                <div className="h-11 animate-pulse rounded-xl bg-muted" />
+                <div className="h-24 animate-pulse rounded-xl bg-muted" />
+              </div>
+            )}
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1.5 md:col-span-2">
+                <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Venue name
+                </Label>
+                <div className="relative">
+                  <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Grand Ballroom"
+                    className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Location
+                </Label>
+                <div className="relative">
+                  <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Cagayan de Oro City"
+                    className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Capacity (pax)
+                </Label>
+                <div className="relative">
+                  <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="number"
+                    min={0}
+                    value={capacity}
+                    onChange={(e) => setCapacity(e.target.value)}
+                    placeholder="150"
+                    className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Starting price (₱)
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="50000"
+                  className="h-11 rounded-xl border-border/60 bg-muted/40"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Venue type
+                </Label>
+                <Select value={venueType} onValueChange={setVenueType}>
+                  <SelectTrigger className="h-11 w-full rounded-xl border-border/60 bg-muted/40">
+                    <SelectValue placeholder="Select venue type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VENUE_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        <span className="flex items-center gap-2">
+                          <Layers2 className="h-3.5 w-3.5 text-muted-foreground" />
+                          {type}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Availability
+                </Label>
+                <Select value={isAvailable} onValueChange={setIsAvailable}>
+                  <SelectTrigger className="h-11 w-full rounded-xl border-border/60 bg-muted/40">
+                    <SelectValue placeholder="Select availability" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">
+                      <span className="flex items-center gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                        Available
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="false">
+                      <span className="flex items-center gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-destructive" />
+                        Unavailable
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Image URL
+                </Label>
+                <Input
+                  value={image}
+                  onChange={(e) => setImage(e.target.value)}
+                  placeholder="https://images.unsplash.com/..."
+                  className="h-11 rounded-xl border-border/60 bg-muted/40"
+                />
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Description
+                </Label>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe your venue, setup flexibility, ambiance, and ideal events..."
+                  className="min-h-28 rounded-xl border-border/60 bg-muted/40"
+                />
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Amenities
+                </Label>
+                <div className="rounded-xl border border-border/60 bg-muted/25 p-4">
+                  {amenityOptions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No saved amenities yet. Add one below.</p>
+                  ) : (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {amenityOptions.map((option) => {
+                        const normalizedOption = normalizeAmenity(option)
+                        const checked = selectedAmenities.some(
+                          (item) => normalizeAmenity(item) === normalizedOption,
+                        )
+
+                        return (
+                          <label
+                            key={normalizedOption}
+                            className="flex items-center gap-2 rounded-md border border-border/60 bg-background/80 px-3 py-2 text-sm"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => toggleAmenity(option, e.target.checked)}
+                              className="h-4 w-4 accent-primary"
+                            />
+                            <span>{option}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      value={customAmenity}
+                      onChange={(e) => setCustomAmenity(e.target.value)}
+                      placeholder="Add custom amenity (e.g. Helipad)"
+                      className="h-10 rounded-xl border-border/60 bg-background"
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault()
+                          addCustomAmenity()
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-10 rounded-xl border-border/60"
+                      onClick={addCustomAmenity}
+                      disabled={!customAmenity.trim()}
+                    >
+                      <PlusIcon className="mr-2 h-4 w-4" />
+                      Add
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Select from existing amenities or add a custom one.
+                </p>
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Additional info section
+                </Label>
+                <Textarea
+                  value={additionalInfo}
+                  onChange={(e) => setAdditionalInfo(e.target.value)}
+                  placeholder="Add venue policies, inclusions, setup notes, ingress/egress reminders, and other details..."
+                  className="min-h-24 rounded-xl border-border/60 bg-muted/40"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <Button
+                variant="outline"
+                className="h-11 rounded-full border-border/60"
+                onClick={() => router.push("/dashboard/owner/venues")}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="h-11 rounded-full bg-primary text-white hover:bg-primary/90"
+                disabled={saving || loading || !accessToken || !name.trim()}
+                onClick={() => {
+                  void handleSubmit()
+                }}
+              >
+                {saving
+                  ? mode === "add"
+                    ? "Creating..."
+                    : "Saving..."
+                  : mode === "add"
+                  ? "Create Venue"
+                  : "Save Changes"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+    </main>
+  )
+}

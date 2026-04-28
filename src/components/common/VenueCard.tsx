@@ -22,81 +22,97 @@ export type VenueCardProps = {
   ownerName: string
   ownerInitials: string
   description?: string
+  additionalInfo?: string
   venueType?: string
   isAvailable?: boolean
+  context?: "client" | "owner"
+  onOwnerEdit?: (venueId: string) => void
+  onOwnerViewAvailability?: (venueId: string, venueName: string) => void
 }
 
 export default function VenueCard(props: VenueCardProps) {
   const [open, setOpen] = useState(false)
   const imageSrc = String(props.image ?? "").trim()
-  const safeImage = imageSrc ? (imageSrc.startsWith("http") ? imageSrc : "/images/placeholder-venue.jpg") : null
-  const displayName = props.organizationName?.trim() || props.ownerName?.trim() || props.name
+  const safeImage = imageSrc
+    ? (imageSrc.startsWith("http") || imageSrc.startsWith("/")
+        ? imageSrc
+        : "/images/placeholder-venue.jpg")
+    : "/images/placeholder-venue.jpg"
+  const descriptionPreview = props.description?.trim()
+  const additionalInfoPreview = props.additionalInfo?.trim()
+  const infoPreview = additionalInfoPreview || descriptionPreview
 
   return (
     <>
       <Card
         onClick={() => setOpen(true)}
-        className="overflow-hidden rounded-2xl border-border/60 bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg cursor-pointer group p-0"
+        className="group cursor-pointer overflow-hidden rounded-2xl border-border/60 bg-card p-0 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
       >
-        <div className="relative w-full" style={{ aspectRatio: "3/2", minHeight: 160 }}>
-          {safeImage ? (
-            <Image
-              src={safeImage}
-              alt={props.name}
-              fill
-              sizes="(max-width: 768px) 100vw, 33vw"
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-          ) : (
-            <div className="w-full h-full bg-muted-foreground/8" />
-          )}
-          <div className="absolute top-3 left-3 bg-primary/90 text-primary-foreground text-[10px] px-2.5 py-1 rounded-full tracking-wide font-medium">
+        <div className="relative w-full" style={{ aspectRatio: "3/2", minHeight: 128 }}>
+          <Image
+            src={safeImage}
+            alt={props.name}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+          <div className="absolute left-2.5 top-2.5 rounded-full bg-primary/90 px-2 py-0.5 text-[9px] font-medium tracking-wide text-primary-foreground sm:left-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
             {(props.isAvailable ?? true) ? "Available" : "Unavailable"}
           </div>
         </div>
 
-        <div className="p-4 pt-0 space-y-3">
+  <div className="-mt-0.5 space-y-2 p-2.5 pt-0 sm:mt-0 sm:space-y-3 sm:p-4 sm:pt-0">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-serif text-xl font-light leading-tight text-foreground">
-              {displayName}
+            <h3 className="truncate font-serif text-sm font-light leading-tight text-foreground sm:text-xl">
+              {props.name}
             </h3>
-            <span className="text-base font-semibold text-primary whitespace-nowrap pt-0.5">
+            <span className="whitespace-nowrap pt-0.5 text-xs font-semibold text-primary sm:text-base">
               {typeof props.price === "number"
                 ? `₱${Number(props.price).toLocaleString()}`
                 : props.price}
             </span>
           </div>
 
-          <div className="flex items-center gap-1 text-[11px] text-muted-foreground -mt-1">
+          <div className="-mt-1 flex items-center gap-1 text-[10px] text-muted-foreground sm:text-[11px]">
             <MapPin className="w-3 h-3 shrink-0" />
-            {props.location}
+            <span className="truncate">{props.location}</span>
           </div>
+
+          {infoPreview && (
+            <p className="hidden line-clamp-2 text-[11px] leading-relaxed text-muted-foreground sm:block sm:text-xs">
+              {infoPreview}
+            </p>
+          )}
 
           <div className="flex items-center gap-1.5">
             <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-            <span className="text-[11px] text-muted-foreground truncate">
+            <span className="truncate text-[10px] text-muted-foreground sm:text-[11px]">
               {props.ownerName}
             </span>
           </div>
 
-          <StarRating rating={props.rating} reviewCount={props.reviewCount} size="sm" />
+          <StarRating rating={props.rating} reviewCount={props.reviewCount} size="sm" compact />
 
-          <div className="flex flex-wrap gap-1">
-            {props.amenities?.slice(0, 4).map((a) => (
-              <Badge key={a} variant="secondary" className="rounded-full text-[10px] px-2 py-0.5 font-normal">
+          <div className="hidden flex-wrap gap-1 sm:flex">
+            {props.amenities?.slice(0, 4).map((a, index) => (
+              <Badge
+                key={a}
+                variant="secondary"
+                className={`rounded-full px-2 py-0.5 text-[9px] font-normal sm:text-[10px] ${index > 1 ? "hidden sm:inline-flex" : ""}`}
+              >
                 {a}
               </Badge>
             ))}
             {props.amenities?.length > 4 && (
-              <Badge variant="secondary" className="rounded-full text-[10px] px-2 py-0.5 font-normal">
+              <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-[9px] font-normal sm:text-[10px]">
                 +{props.amenities.length - 4}
               </Badge>
             )}
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-border/60">
-            <span className="text-[11px] text-muted-foreground">{props.capacity} pax</span>
-            <span className="text-[10px] text-muted-foreground">Click to view details</span>
+          <div className="flex items-center justify-between border-t border-border/60 pt-2">
+            <span className="text-[10px] text-muted-foreground sm:text-[11px]">{props.capacity} pax</span>
+            <span className="text-[9px] text-muted-foreground sm:text-[10px]">View details</span>
           </div>
         </div>
       </Card>

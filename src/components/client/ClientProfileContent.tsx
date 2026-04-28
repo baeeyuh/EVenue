@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import PageSectionHeader from "@/components/common/PageSectionHeader"
 
 type ProfileResponse = {
   id: string
@@ -134,20 +135,20 @@ export default function ClientProfileContent() {
 
   return (
     <main className="min-h-screen bg-[#fafaf8] text-foreground">
-      <section className="border-b border-border/60 bg-background">
-        <div className="mx-auto max-w-3xl px-6 py-12">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-            Account
-          </p>
-          <h1 className="font-serif text-4xl font-light tracking-tight">My Profile</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
-            Manage your account information and keep your event planning details updated.
-          </p>
-        </div>
-      </section>
+      <PageSectionHeader
+        eyebrow="Account"
+        title="My Profile"
+        description="Manage your account information and keep your event planning details updated."
+        maxWidthClassName="max-w-3xl"
+      />
 
       <section className="mx-auto max-w-3xl space-y-4 px-6 py-10">
-        {loading && <p className="text-sm text-muted-foreground">Loading profile...</p>}
+        {loading && (
+          <>
+            <Card className="h-24 animate-pulse border-border/60 bg-muted" />
+            <Card className="h-72 animate-pulse border-border/60 bg-muted" />
+          </>
+        )}
 
         {error && !loading && (
           <Card className="border-destructive/20 bg-destructive/5">

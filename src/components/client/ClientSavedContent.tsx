@@ -4,6 +4,45 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { supabaseClient } from "@/lib/supabaseClient"
 import { MapPin, Building2, ArrowUpRight, X } from "lucide-react"
+import VenueDetailsModal from "@/components/common/VenueDetailsModal"
+import PageSectionHeader from "@/components/common/PageSectionHeader"
+
+type VenueDetailRow = {
+  id: string
+  organization_id: string | null
+  organization_name: string | null
+  name: string
+  location: string | null
+  capacity: number | null
+  price: number | null
+  image: string | null
+  amenities: string[] | null
+  rating: number | null
+  review_count: number | null
+  description: string | null
+  additional_info: string | null
+  venue_type: string | null
+  is_available: boolean | null
+}
+
+type ModalVenue = {
+  id: string
+  organizationId: string
+  name: string
+  location: string
+  capacity: number
+  price: string
+  image: string
+  amenities: string[]
+  rating: number
+  reviewCount: number
+  ownerName: string
+  ownerInitials: string
+  description?: string
+  additionalInfo?: string
+  venueType?: string
+  isAvailable?: boolean
+}
 
 type SavedItem = {
   id: string
@@ -11,6 +50,7 @@ type SavedItem = {
   item_type: string
   name: string
   location: string
+  organization_id?: string | null
 }
 
 function getSavedTypeLabel(itemType: string) {
@@ -23,6 +63,19 @@ export default function ClientSavedContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [removingId, setRemovingId] = useState<string | null>(null)
+  const [activeVenue, setActiveVenue] = useState<ModalVenue | null>(null)
+  const [venueModalOpen, setVenueModalOpen] = useState(false)
+  const [openingVenueId, setOpeningVenueId] = useState<string | null>(null)
+
+  function initialsFromName(name: string): string {
+    return name
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase()
+  }
 
   useEffect(() => {
     let active = true
@@ -85,29 +138,74 @@ export default function ClientSavedContent() {
     }
   }
 
+  async function handleOpenVenueDetails(venueId: string) {
+    setOpeningVenueId(venueId)
+
+    const { data, error: venueError } = await supabaseClient
+      .from("venue_full_details")
+      .select(
+        "id, organization_id, organization_name, name, location, capacity, price, image, amenities, rating, review_count, description, additional_info, venue_type, is_available"
+      )
+      .eq("id", venueId)
+      .single<VenueDetailRow>()
+
+    setOpeningVenueId(null)
+
+    if (venueError || !data) {
+      setError("Failed to load venue details")
+      return
+    }
+
+    const organizationName = data.organization_name ?? "Venue Owner"
+
+    setActiveVenue({
+      id: data.id,
+      organizationId: data.organization_id ?? "",
+      name: data.name,
+      location: data.location ?? "",
+      capacity: data.capacity ?? 0,
+      price: data.price !== null ? `₱${Number(data.price).toLocaleString()}` : "Price on request",
+      image: data.image ?? "/images/placeholder-venue.jpg",
+      amenities: data.amenities ?? [],
+      rating: Number(data.rating ?? 0),
+      reviewCount: data.review_count ?? 0,
+      ownerName: organizationName,
+      ownerInitials: initialsFromName(organizationName) || "VO",
+      description: data.description ?? undefined,
+      additionalInfo: data.additional_info ?? undefined,
+      venueType: data.venue_type ?? undefined,
+      isAvailable: data.is_available ?? true,
+    })
+    setVenueModalOpen(true)
+  }
+
   return (
     <main style={{ minHeight: "100vh", background: "#fafaf8", color: "#1a1a1a", fontFamily: "var(--font-sans, sans-serif)" }}>
-
-      {/* Page Header */}
-      <section style={{ borderBottom: "1px solid #e8e6e0", background: "#ffffff" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 24px 40px" }}>
-          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1d3557", marginBottom: 10 }}>
-            Saved
-          </p>
-          <h1 style={{ fontSize: 36, fontWeight: 400, letterSpacing: "-0.02em", color: "#0f1117", margin: "0 0 12px", fontFamily: "Georgia, 'Times New Roman', serif" }}>
-            Saved Items
-          </h1>
-          <p style={{ fontSize: 14, color: "#6b6b6b", margin: 0, maxWidth: 480, lineHeight: 1.65 }}>
-            Keep track of venues and organizations you want to revisit later.
-          </p>
-        </div>
-      </section>
+      <PageSectionHeader
+        eyebrow="Saved"
+        title="Saved Items"
+        description="Keep track of venues and organizations you want to revisit later."
+        maxWidthClassName="max-w-[900px]"
+        className="border-[#e8e6e0] bg-white"
+      />
 
       {/* Content */}
       <section style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
 
         {loading && (
-          <p style={{ fontSize: 14, color: "#9a9a9a" }}>Loading saved items…</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: 16 }}>
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                style={{
+                  height: 208,
+                  borderRadius: 16,
+                  background: "#eceae4",
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }}
+              />
+            ))}
+          </div>
         )}
         {error && !loading && (
           <p style={{ fontSize: 14, color: "#c0392b" }}>{error}</p>
@@ -120,7 +218,8 @@ export default function ClientSavedContent() {
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: 16 }}>
-          {savedItems.map((item) => (
+          {!loading && savedItems.map((item) => {
+            return (
             <div
               key={item.id}
               style={{
@@ -181,26 +280,56 @@ export default function ClientSavedContent() {
               </div>
 
               <div style={{ marginTop: "auto", borderTop: "1px solid #f0eee8", paddingTop: 16 }}>
-                <Link
-                  href={item.item_type === "organization" ? `/organizations/${item.item_id}` : "/dashboard/client"}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    fontSize: 13, fontWeight: 500, color: "#1d3557",
-                    textDecoration: "none",
-                    background: "transparent", border: "1px solid #c8cdd8",
-                    borderRadius: 24, padding: "8px 18px",
-                    transition: "background 0.15s, border-color 0.15s",
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#f0f3f8"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#1d3557" }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#c8cdd8" }}
-                >
-                  View <ArrowUpRight size={13} />
-                </Link>
+                {item.item_type === "organization" ? (
+                  <Link
+                    href={`/organizations/${item.item_id}`}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      fontSize: 13, fontWeight: 500, color: "#1d3557",
+                      textDecoration: "none",
+                      background: "transparent", border: "1px solid #c8cdd8",
+                      borderRadius: 24, padding: "8px 18px",
+                      transition: "background 0.15s, border-color 0.15s",
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#f0f3f8"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#1d3557" }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#c8cdd8" }}
+                  >
+                    View <ArrowUpRight size={13} />
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => { void handleOpenVenueDetails(item.item_id) }}
+                    disabled={openingVenueId === item.item_id}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      fontSize: 13, fontWeight: 500, color: "#1d3557",
+                      textDecoration: "none",
+                      background: "transparent", border: "1px solid #c8cdd8",
+                      borderRadius: 24, padding: "8px 18px",
+                      transition: "background 0.15s, border-color 0.15s",
+                      cursor: openingVenueId === item.item_id ? "not-allowed" : "pointer",
+                      opacity: openingVenueId === item.item_id ? 0.6 : 1,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "#f0f3f8"; e.currentTarget.style.borderColor = "#1d3557" }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "#c8cdd8" }}
+                  >
+                    {openingVenueId === item.item_id ? "Loading..." : "View"} <ArrowUpRight size={13} />
+                  </button>
+                )}
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       </section>
+
+      {activeVenue && (
+        <VenueDetailsModal
+          open={venueModalOpen}
+          onClose={() => setVenueModalOpen(false)}
+          {...activeVenue}
+        />
+      )}
     </main>
   )
 }

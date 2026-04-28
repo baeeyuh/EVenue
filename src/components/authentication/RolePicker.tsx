@@ -17,7 +17,7 @@ export default function RolePicker({ value, onChange }: RolePickerProps) {
   return (
     <div className="space-y-2">
       <p className="text-[11px] uppercase tracking-widest text-muted-foreground">I am a...</p>
-      <div className="grid grid-cols-2 gap-2">
+  <div className="grid grid-cols-2 gap-2">
         {roles.map((r) => (
           <button
             key={r.value}
