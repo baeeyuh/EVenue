@@ -64,11 +64,10 @@ export default async function OrganizationPublicPage({ params }: Props) {
   return (
     <main className="min-h-screen bg-background">
       <OrganizationHero org={normalizedOrg} />
-      <div className="mx-auto max-w-7xl px-6 py-10 space-y-12">
+      <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:space-y-10 sm:px-6 sm:py-10">
         <OrganizationStats org={normalizedOrg} />
-        <div className="grid gap-12 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-12">
-            <OrganizationGallery gallery={normalizedOrg.gallery} />
+        <div className="grid gap-8 lg:grid-cols-3 lg:gap-12">
+          <div className="space-y-8 lg:col-span-2 lg:space-y-12">
             <OrganizationVenues
               venues={orgVenues.map((v) => ({
                 ...v,
@@ -93,6 +92,7 @@ export default async function OrganizationPublicPage({ params }: Props) {
                 is_available: v.is_available ?? true,
               }))}
             />
+            <OrganizationGallery gallery={normalizedOrg.gallery} />
           </div>
           <div>
             <OrganizationAbout org={normalizedOrg} />

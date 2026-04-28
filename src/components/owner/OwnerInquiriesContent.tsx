@@ -7,6 +7,7 @@ import { supabaseClient } from "@/lib/supabaseClient"
 import InquiryDetailsModal from "@/components/client/InquiryDetailsModal"
 import { getInquiryDetails } from "@/lib/services/details/client"
 import type { InquiryDetails } from "@/lib/services/details/types"
+import PageSectionHeader from "@/components/common/PageSectionHeader"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -208,17 +209,12 @@ export default function OwnerInquiriesContent() {
 
   return (
     <main className="min-h-screen bg-[#fafaf8] text-foreground">
-      <section className="border-b border-border/60 bg-background">
-        <div className="mx-auto max-w-6xl px-6 py-12">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-            Client Inquiries
-          </p>
-          <h1 className="font-serif text-4xl font-light tracking-tight">Inquiries</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
-            Review and respond to inquiries from potential clients.
-          </p>
-        </div>
-      </section>
+      <PageSectionHeader
+        eyebrow="Client Inquiries"
+        title="Inquiries"
+        description="Review and respond to inquiries from potential clients."
+        maxWidthClassName="max-w-6xl"
+      />
 
       <section className="mx-auto max-w-6xl space-y-4 px-6 py-10">
         {loading ? (

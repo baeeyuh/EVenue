@@ -32,7 +32,7 @@ export default function OrganizationCard({
               src={imageSrc}
               alt={name}
               fill
-              sizes="(max-width: 768px) 100vw, 33vw"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 33vw"
               className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
@@ -40,32 +40,32 @@ export default function OrganizationCard({
               <Building2 className="w-10 h-10 text-muted-foreground/20" />
             </div>
           )}
-          <div className="absolute top-3 right-3 bg-primary/90 text-primary-foreground text-[10px] px-2.5 py-1 rounded-full font-medium">
+          <div className="absolute right-2.5 top-2.5 rounded-full bg-primary/90 px-2 py-0.5 text-[9px] font-medium text-primary-foreground sm:right-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
             {venueCount ?? 0} {(venueCount ?? 0) === 1 ? "venue" : "venues"}
           </div>
         </div>
 
-        <div className="p-4 pt-3 space-y-3">
+        <div className="-mt-0.5 space-y-2 p-2.5 pt-0 sm:mt-0 sm:space-y-3 sm:p-4 sm:pt-0">
           <div>
-            <h3 className="font-serif text-lg font-light leading-tight text-foreground">
+            <h3 className="truncate font-serif text-sm font-light leading-tight text-foreground sm:text-lg">
               {name}
             </h3>
-            <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-0.5">
+            <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground sm:text-[11px]">
               <MapPin className="w-3 h-3 shrink-0" />
-              {location}
+              <span className="truncate">{location}</span>
             </div>
           </div>
 
-          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+          <p className="hidden text-xs leading-relaxed text-muted-foreground line-clamp-2 sm:block">
             {description}
           </p>
 
-          <div className="flex items-center justify-between pt-2 border-t border-border/60">
-            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <div className="flex items-center justify-between border-t border-border/60 pt-2">
+            <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground sm:text-[11px] truncate">
               <Building2 className="w-3.5 h-3.5" />
-              {venueCount ?? 0} {(venueCount ?? 0) === 1 ? "venue listed" : "venues listed"}
+              <span className="truncate">{venueCount ?? 0} {(venueCount ?? 0) === 1 ? "venue listed" : "venues listed"}</span>
             </div>
-            <span className="text-[10px] text-primary font-medium">View profile →</span>
+            <span className="text-[9px] font-medium text-primary sm:text-[10px] truncate">View profile</span>
           </div>
         </div>
 

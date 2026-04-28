@@ -6,6 +6,7 @@ import { Building2, MapPin, Users, Layers2, CheckCircle2, ArrowLeftIcon, PlusIco
 
 import { supabaseClient } from "@/lib/supabaseClient"
 import { Button } from "@/components/ui/button"
+import PageSectionHeader from "@/components/common/PageSectionHeader"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -274,17 +275,16 @@ export default function OwnerVenueEditorContent({ mode, venueId }: OwnerVenueEdi
 
   return (
     <main className="min-h-screen bg-[#fafaf8] text-foreground">
-    <section className="border-b border-border/60 bg-background">
-      <div className="mx-auto max-w-4xl px-6 py-12">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-          Venue Management
-        </p>
-
-        <div className="flex items-center justify-between">
-          <h1 className="font-serif text-4xl font-light tracking-tight">
-            {title}
-          </h1>
-
+      <PageSectionHeader
+        eyebrow="Venue Management"
+        title={title}
+        description={
+          mode === "add"
+            ? "Create a complete venue listing with details, media, and pricing."
+            : "Update all venue information, including details, image, and availability."
+        }
+        maxWidthClassName="max-w-4xl"
+        actions={
           <Button
             type="button"
             variant="outline"
@@ -294,15 +294,8 @@ export default function OwnerVenueEditorContent({ mode, venueId }: OwnerVenueEdi
             <ArrowLeftIcon className="mr-2 h-4 w-4" />
             Back to Venues
           </Button>
-        </div>
-
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
-          {mode === "add"
-            ? "Create a complete venue listing with details, media, and pricing."
-            : "Update all venue information, including details, image, and availability."}
-        </p>
-      </div>
-    </section>
+        }
+      />
 
       <section className="mx-auto max-w-4xl px-6 py-10">
         <Card className="border-border/60">

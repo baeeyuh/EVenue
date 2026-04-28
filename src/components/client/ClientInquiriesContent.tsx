@@ -11,6 +11,7 @@ import type { InquiryDetails } from "@/lib/services/details/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import PageSectionHeader from "@/components/common/PageSectionHeader"
 
 type InquiryListItem = {
   id: string
@@ -241,21 +242,12 @@ export default function ClientInquiriesContent() {
   return (
     <>
       <main className="min-h-screen bg-[#fafaf8] text-foreground">
-        <section className="border-b border-border/60 bg-background">
-          <div className="mx-auto max-w-5xl px-6 py-12">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-              My Inquiries
-            </p>
-
-            <h1 className="font-serif text-4xl font-light tracking-tight text-foreground">
-              Inquiries
-            </h1>
-
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
-              Track venue questions, availability requests, and communication status.
-            </p>
-          </div>
-        </section>
+        <PageSectionHeader
+          eyebrow="My Inquiries"
+          title="Inquiries"
+          description="Track venue questions, availability requests, and communication status."
+          maxWidthClassName="max-w-5xl"
+        />
 
         <section className="mx-auto max-w-5xl px-6 py-10">
           <div className="mb-6 max-w-md">

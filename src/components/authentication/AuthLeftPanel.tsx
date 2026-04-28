@@ -1,6 +1,6 @@
 export default function AuthLeftPanel() {
   return (
-    <div className="relative flex min-h-[220px] flex-col justify-between overflow-hidden bg-primary p-5 sm:min-h-[320px] sm:p-8 lg:min-h-[560px] lg:p-10">
+  <div className="relative flex h-full min-h-55 flex-col justify-between overflow-hidden bg-primary p-5 sm:min-h-80 sm:p-8 lg:min-h-140 lg:p-10">
 
       {/* Dot grid texture */}
       <div

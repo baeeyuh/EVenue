@@ -8,6 +8,7 @@ import { supabaseClient } from "@/lib/supabaseClient"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import VenueCard from "@/components/common/VenueCard"
+import PageSectionHeader from "@/components/common/PageSectionHeader"
 import OwnerVenueAvailabilityModal from "@/components/owner/OwnerVenueAvailabilityModal"
 
 type OwnerVenue = {
@@ -92,17 +93,12 @@ export default function OwnerVenuesContent() {
   return (
     <>
       <main className="min-h-screen bg-[#fafaf8] text-foreground">
-        <section className="border-b border-border/60 bg-background">
-          <div className="mx-auto max-w-6xl px-6 py-12">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-              Venue Management
-            </p>
-            <h1 className="font-serif text-4xl font-light tracking-tight">My Venues</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
-              Manage your venue listings, information, and availability.
-            </p>
-          </div>
-        </section>
+        <PageSectionHeader
+          eyebrow="Venue Management"
+          title="My Venues"
+          description="Manage your venue listings, information, and availability."
+          maxWidthClassName="max-w-6xl"
+        />
 
         <section className="mx-auto max-w-6xl space-y-4 px-6 py-10">
           <div className="flex justify-end">
@@ -118,7 +114,7 @@ export default function OwnerVenuesContent() {
           </div>
 
           {loading ? (
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:gap-6">
               {Array.from({ length: 6 }).map((_, index) => (
                 <div key={index} className="h-56 animate-pulse rounded-2xl bg-muted" />
               ))}
@@ -138,7 +134,7 @@ export default function OwnerVenuesContent() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:gap-6">
               {venues.map((venue) => (
                 <div key={venue.id} className="space-y-3">
                   <VenueCard

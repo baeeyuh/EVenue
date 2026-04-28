@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { supabaseClient } from "@/lib/supabaseClient"
 import { CalendarDays, Clock } from "lucide-react"
 import BookingDetailsModal from "@/components/common/BookingDetailsModal"
+import PageSectionHeader from "@/components/common/PageSectionHeader"
 import { getBookingDetails } from "@/lib/services/details/client"
 import type { BookingDetails } from "@/lib/services/details/types"
 import { toast } from "sonner"
@@ -131,21 +132,13 @@ export default function ClientBookingsContent() {
   return (
     <>
       <main style={{ minHeight: "100vh", background: "#fafaf8", color: "#1a1a1a", fontFamily: "var(--font-sans, sans-serif)" }}>
-
-      {/* Page Header */}
-      <section style={{ borderBottom: "1px solid #e8e6e0", background: "#ffffff" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 24px 40px" }}>
-          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1d3557", marginBottom: 10 }}>
-            My Bookings
-          </p>
-          <h1 style={{ fontSize: 36, fontWeight: 400, letterSpacing: "-0.02em", color: "#0f1117", margin: "0 0 12px", fontFamily: "Georgia, 'Times New Roman', serif" }}>
-            Reservations
-          </h1>
-          <p style={{ fontSize: 14, color: "#6b6b6b", margin: 0, maxWidth: 480, lineHeight: 1.65 }}>
-            View your reservation progress, event schedule, and confirmed venue bookings.
-          </p>
-        </div>
-      </section>
+        <PageSectionHeader
+          eyebrow="My Bookings"
+          title="Reservations"
+          description="View your reservation progress, event schedule, and confirmed venue bookings."
+          maxWidthClassName="max-w-[900px]"
+          className="border-[#e8e6e0] bg-white"
+        />
 
       {/* Content */}
       <section style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>

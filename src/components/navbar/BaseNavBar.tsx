@@ -45,22 +45,25 @@ export default function BaseNavBar({
 }: BaseNavBarProps) {
   const [isSigningOut, setIsSigningOut] = useState(false)
   const headerRef = useRef<HTMLElement | null>(null)
+  const bottomNavRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     const header = headerRef.current
+    const bottomNav = bottomNavRef.current
     if (!header) return
 
     const setNavbarHeightVar = () => {
-      const navbarHeight = `${header.offsetHeight}px`
+      const headerHeight = `${header.offsetHeight}px`
+      const bottomNavHeight = `${bottomNav?.offsetHeight ?? 0}px`
       const isDesktop = window.matchMedia("(min-width: 1024px)").matches
 
       document.documentElement.style.setProperty(
         "--app-navbar-height",
-        isDesktop ? navbarHeight : "0px"
+        headerHeight
       )
       document.documentElement.style.setProperty(
         "--app-navbar-bottom-height",
-        isDesktop ? "0px" : navbarHeight
+        isDesktop ? "0px" : `calc(${bottomNavHeight} + env(safe-area-inset-bottom, 0px))`
       )
     }
 
@@ -68,6 +71,9 @@ export default function BaseNavBar({
 
     const resizeObserver = new ResizeObserver(setNavbarHeightVar)
     resizeObserver.observe(header)
+    if (bottomNav) {
+      resizeObserver.observe(bottomNav)
+    }
     window.addEventListener("resize", setNavbarHeightVar)
 
     return () => {
@@ -100,7 +106,7 @@ export default function BaseNavBar({
     <>
       <header
         ref={headerRef}
-        className="fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/95 backdrop-blur-xl lg:sticky lg:top-0 lg:bottom-auto lg:border-t-0 lg:border-b"
+        className="sticky top-0 z-50 border-b border-border/60 bg-background/95 backdrop-blur-xl"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="flex flex-col gap-3 py-2.5 sm:py-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
@@ -113,7 +119,7 @@ export default function BaseNavBar({
                   width={160}
                   height={160}
                   className="object-contain"
-                  style={{ width: "auto", height: "2.2rem" }}
+                  style={{ width: "auto", height: "2.5rem" }}
                 />
               </Link>
 
@@ -167,7 +173,7 @@ export default function BaseNavBar({
             </div>
 
             {/* Middle nav */}
-            <nav className="hidden lg:flex w-full items-center justify-center gap-x-5">
+            <nav className="hidden lg:flex w-full items-center justify-center gap-x-8">
               {navItems.map(({ href, label, icon: Icon, isActive }) => (
                 <Link
                   key={href}
@@ -240,8 +246,11 @@ export default function BaseNavBar({
         </div>
       </header>
 
-      <nav className="fixed bottom-0 inset-x-0 z-50 border-t border-border/60 bg-background/95 backdrop-blur-xl lg:hidden">
-        <div className="grid grid-flow-col auto-cols-fr items-center py-2">
+      <nav
+        ref={bottomNavRef}
+        className="fixed bottom-0 inset-x-0 z-50 border-t border-border/60 bg-background/95 backdrop-blur-xl lg:hidden"
+      >
+        <div className="grid grid-flow-col auto-cols-fr items-center pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
           {navItems.map(({ href, label, icon: Icon, isActive }) => (
             <Link
               key={href}
