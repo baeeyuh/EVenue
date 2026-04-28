@@ -352,7 +352,8 @@ export async function updateOwnerVenue(
     .single()
 
   if (error && isAdditionalInfoMissingError(error)) {
-    const { additional_info: _ignored, ...fallbackUpdates } = updates
+    const fallbackUpdates = { ...updates }
+    delete fallbackUpdates.additional_info
 
     const fallbackUpdate = await client
       .from("venues")
@@ -376,4 +377,50 @@ export async function updateOwnerVenue(
   await replaceVenueAmenities(client, updatedVenue.id, amenityIds)
 
   return await hydrateOwnerVenueById(client, orgIds, updatedVenue.id)
+}
+
+export async function deleteOwnerVenue(
+  client: SupabaseClient,
+  ownerId: string,
+  venueId: string,
+): Promise<void> {
+  const orgIds = await getOwnerOrgIds(client, ownerId)
+
+  if (orgIds.length === 0) {
+    throw new Error("No organization found for this owner")
+  }
+
+  const venueLookup = await client
+    .from("venues")
+    .select("id")
+    .eq("id", venueId)
+    .in("organization_id", orgIds)
+    .maybeSingle()
+
+  if (venueLookup.error) {
+    console.error(venueLookup.error)
+    throw new Error("Failed to verify venue ownership")
+  }
+
+  if (!venueLookup.data) {
+    throw new Error("Venue not found")
+  }
+
+  const amenityDelete = await client.from("venue_amenities").delete().eq("venue_id", venueId)
+
+  if (amenityDelete.error) {
+    console.error(amenityDelete.error)
+    throw new Error("Failed to delete venue amenities")
+  }
+
+  const venueDelete = await client
+    .from("venues")
+    .delete()
+    .eq("id", venueId)
+    .in("organization_id", orgIds)
+
+  if (venueDelete.error) {
+    console.error(venueDelete.error)
+    throw new Error("Failed to delete venue")
+  }
 }
