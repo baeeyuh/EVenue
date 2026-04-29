@@ -24,7 +24,7 @@ type CheckAvailabilityModalProps = {
   venueId: string
   venueName: string
   venueLocation?: string
-  onContinue?: (selectedDate: string) => void
+  onContinue?: (startDate: string, endDate?: string) => void
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -57,6 +57,21 @@ function formatDateKey(date: Date) {
   return `${year}-${month}-${day}`
 }
 
+function buildRangeKeys(start: string, end: string) {
+  const keys: string[] = []
+  const startDate = new Date(start)
+  const endDate = new Date(end)
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return keys
+
+  const cursor = new Date(startDate)
+  while (cursor <= endDate) {
+    keys.push(formatDateKey(cursor))
+    cursor.setDate(cursor.getDate() + 1)
+  }
+
+  return keys
+}
+
 function buildCalendarDays(viewDate: Date) {
   const monthStart = startOfMonth(viewDate)
   const monthEnd = endOfMonth(viewDate)
@@ -85,7 +100,8 @@ export default function CheckAvailabilityModal({
   onContinue,
 }: CheckAvailabilityModalProps) {
   const [viewDate, setViewDate] = useState(() => startOfMonth(new Date()))
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [selectedStart, setSelectedStart] = useState<string | null>(null)
+  const [selectedEnd, setSelectedEnd] = useState<string | null>(null)
   const [availability, setAvailability] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -146,6 +162,15 @@ export default function CheckAvailabilityModal({
 
   const days = useMemo(() => buildCalendarDays(viewDate), [viewDate])
   const todayKey = formatDateKey(new Date())
+  const rangeKeys = useMemo(() => {
+    if (!selectedStart) return []
+    if (!selectedEnd) return [selectedStart]
+    return buildRangeKeys(selectedStart, selectedEnd)
+  }, [selectedStart, selectedEnd])
+  const rangeIsAvailable = useMemo(() => {
+    if (rangeKeys.length === 0) return false
+    return rangeKeys.every((key) => availability[key] === true)
+  }, [rangeKeys, availability])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -208,18 +233,41 @@ export default function CheckAvailabilityModal({
               const isPast = key < todayKey
               const isAvailable = availability[key] === true
               const isUnavailable = availability[key] === false || isPast
-              const isSelected = selectedDate === key
+              const isSelectedStart = selectedStart === key
+              const isSelectedEnd = selectedEnd === key
+              const isInRange = rangeKeys.includes(key)
 
               return (
                 <button
                   key={key}
                   type="button"
                   disabled={!isAvailable}
-                  onClick={() => setSelectedDate(key)}
+                  onClick={() => {
+                    if (!selectedStart || (selectedStart && selectedEnd)) {
+                      setSelectedStart(key)
+                      setSelectedEnd(null)
+                      return
+                    }
+
+                    if (key < selectedStart) {
+                      setSelectedEnd(selectedStart)
+                      setSelectedStart(key)
+                      return
+                    }
+
+                    setSelectedEnd(key)
+                  }}
                   className={cn(
                     "aspect-square rounded-xl border text-xs transition-all sm:rounded-2xl sm:text-sm",
-                    isSelected && "border-primary bg-primary text-primary-foreground",
-                    !isSelected &&
+                    (isSelectedStart || isSelectedEnd) &&
+                      "border-primary bg-primary text-primary-foreground",
+                    !isSelectedStart &&
+                      !isSelectedEnd &&
+                      isInRange &&
+                      "border-primary/40 bg-primary/10 text-foreground",
+                    !isSelectedStart &&
+                      !isSelectedEnd &&
+                      !isInRange &&
                       isAvailable &&
                       "border-border/60 bg-background hover:border-primary/50 hover:bg-primary/5",
                     isUnavailable &&
@@ -252,13 +300,19 @@ export default function CheckAvailabilityModal({
           {loading && <div className="h-10 animate-pulse rounded-xl bg-muted" />}
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          {selectedDate && (
+          {selectedStart && (
             <div className="rounded-[1.25rem] border border-primary/20 bg-primary/5 p-3.5 sm:rounded-[1.5rem] sm:p-4">
-              <p className="text-xs text-muted-foreground sm:text-sm">Selected date</p>
+              <p className="text-xs text-muted-foreground sm:text-sm">Selected dates</p>
               <p className="mt-1 text-sm font-medium text-foreground sm:text-base">
-                {selectedDate}
+                {selectedStart}{selectedEnd ? ` to ${selectedEnd}` : ""}
               </p>
             </div>
+          )}
+
+          {selectedStart && selectedEnd && !rangeIsAvailable && (
+            <p className="text-sm text-destructive">
+              One or more dates in this range are unavailable.
+            </p>
           )}
 
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
@@ -271,11 +325,11 @@ export default function CheckAvailabilityModal({
             </Button>
 
             <Button
-              disabled={!selectedDate}
+              disabled={!selectedStart || (selectedEnd ? !rangeIsAvailable : false)}
               className="h-10 rounded-full bg-primary px-3 text-[11px] leading-tight text-white hover:bg-primary/90 sm:h-11 sm:text-sm"
               onClick={() => {
-                if (selectedDate) {
-                  onContinue?.(selectedDate)
+                if (selectedStart) {
+                  onContinue?.(selectedStart, selectedEnd ?? undefined)
                 }
               }}
             >

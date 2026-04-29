@@ -25,6 +25,11 @@ export type OwnerInquiryRow = {
   client_email: string | null
 }
 
+export type OwnerInquiryStatusUpdateResult = {
+  id: string
+  status: InquiryStatus
+}
+
 type InquiryBaseRow = {
   id: string
   message: string
@@ -172,69 +177,78 @@ export async function updateInquiryStatus(
   ownerId: string,
   inquiryId: string,
   status: InquiryStatus
-): Promise<OwnerInquiryRow> {
-  const inquiries = await getOwnerInquiries(client, ownerId)
-  const existing = inquiries.find((inquiry) => inquiry.id === inquiryId)
+): Promise<OwnerInquiryStatusUpdateResult> {
+  const orgIds = await getOwnerOrgIds(client, ownerId)
+  if (orgIds.length === 0) {
+    throw new Error("No organizations found for this owner")
+  }
 
-  if (!existing) {
+  const inquiryLookup = await client
+    .from("inquiries")
+    .select("id, venue_id, status")
+    .eq("id", inquiryId)
+    .maybeSingle()
+
+  if (inquiryLookup.error) {
+    console.error(inquiryLookup.error)
+    throw new Error("Failed to load inquiry")
+  }
+
+  const inquiry = inquiryLookup.data as { id: string; venue_id: string | null } | null
+  if (!inquiry) {
     throw new Error("Inquiry not found")
   }
 
-  const statusValue = status === "accepted" ? "Accepted" : "Rejected"
+  if (!inquiry.venue_id) {
+    throw new Error("Inquiry is missing venue information")
+  }
 
-  let updateQuery = client
+  const venueLookup = await client
+    .from("venues")
+    .select("id, organization_id")
+    .eq("id", inquiry.venue_id)
+    .maybeSingle()
+
+  if (venueLookup.error) {
+    console.error(venueLookup.error)
+    throw new Error("Failed to load inquiry venue")
+  }
+
+  const venue = venueLookup.data as { id: string; organization_id: string | null } | null
+  if (!venue?.organization_id || !orgIds.includes(venue.organization_id)) {
+    throw new Error("Inquiry does not belong to this owner")
+  }
+
+  let updateResult = await client
     .from("inquiries")
-    .update({ status: statusValue, owner_id: ownerId })
+    .update({ status })
     .eq("id", inquiryId)
-
-  if (existing.venue_id) {
-    updateQuery = updateQuery.eq("venue_id", existing.venue_id)
-  }
-
-  let updateResult = await updateQuery
-
-  if (updateResult.error && isMissingColumnError(updateResult.error, "owner_id")) {
-    let fallbackQuery = client
-      .from("inquiries")
-      .update({ status: statusValue })
-      .eq("id", inquiryId)
-
-    if (existing.venue_id) {
-      fallbackQuery = fallbackQuery.eq("venue_id", existing.venue_id)
-    }
-
-    updateResult = await fallbackQuery
-  }
+    .eq("venue_id", inquiry.venue_id)
+    .select("id, status")
 
   if (updateResult.error && isMissingColumnError(updateResult.error, "status")) {
-    let legacyStatusQuery = client
+    updateResult = await client
       .from("inquiries")
       .update({ status })
       .eq("id", inquiryId)
-
-    if (existing.venue_id) {
-      legacyStatusQuery = legacyStatusQuery.eq("venue_id", existing.venue_id)
-    }
-
-    updateResult = await legacyStatusQuery
+      .eq("venue_id", inquiry.venue_id)
+      .select("id, status")
   }
 
   if (updateResult.error) {
     console.error(updateResult.error)
-    throw new Error("Failed to update inquiry status")
+    throw new Error(updateResult.error.message || "Failed to update inquiry status")
   }
 
-  const updatedInquiries = await getOwnerInquiries(client, ownerId)
-  const updated = updatedInquiries.find((inquiry) => inquiry.id === inquiryId)
-  const savedStatus = normalizeInquiryStatus(updated?.status)
+  const updatedRow = (updateResult.data as Array<{ id: string; status: string | null }> | null)?.[0]
 
-  if (!updated || savedStatus !== status) {
-    throw new Error("Inquiry status was not updated")
+  if (!updatedRow) {
+    throw new Error("Inquiry status update did not match any records")
   }
 
   return {
-    ...updated,
-    status: savedStatus,
+    id: updatedRow.id,
+    status: normalizeInquiryStatus(updatedRow.status),
   }
 }
 

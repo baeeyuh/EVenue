@@ -49,6 +49,7 @@ export default function VenueDetailsModal({
   const [availabilityOpen, setAvailabilityOpen] = useState(false)
   const [inquiryOpen, setInquiryOpen] = useState(false)
   const [selectedInquiryDate, setSelectedInquiryDate] = useState("")
+  const [selectedInquiryEndDate, setSelectedInquiryEndDate] = useState("")
   const imageSrc = String(image ?? "").trim()
   const safeImage = imageSrc
     ? imageSrc.startsWith("http") || imageSrc.startsWith("/")
@@ -216,8 +217,9 @@ export default function VenueDetailsModal({
             venueId={id}
             venueName={name}
             venueLocation={location}
-            onContinue={(date) => {
-              setSelectedInquiryDate(date)
+            onContinue={(startDate, endDate) => {
+              setSelectedInquiryDate(startDate)
+              setSelectedInquiryEndDate(endDate ?? "")
               setAvailabilityOpen(false)
               setInquiryOpen(true)
             }}
@@ -232,6 +234,7 @@ export default function VenueDetailsModal({
             ownerName={ownerName}
             venueCapacity={capacity}
             initialEventDate={selectedInquiryDate}
+            initialEventEndDate={selectedInquiryEndDate}
           />
         </>
       )}

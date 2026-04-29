@@ -205,7 +205,7 @@ export async function createVenueInquiry(payload: VenueInquiryPayload) {
     user_id: payload.userId,
     venue_id: payload.venueId,
     message: composedMessage,
-    status: "Pending",
+    status: "pending",
   })
 
   if (error) {
