@@ -4,6 +4,7 @@ import {
   fetchClientInquiries,
   sendClientInquiryMessage,
 } from "@/lib/services/client/inquiries"
+import { getClientInquiryDetails } from "@/lib/services/details/server"
 import { getAuthenticatedUserId } from "@/lib/services/client/auth"
 
 export async function GET(request: Request) {
@@ -12,6 +13,19 @@ export async function GET(request: Request) {
 
     if (!userId || !client) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const inquiryId = searchParams.get("id")?.trim()
+
+    if (inquiryId) {
+      const inquiry = await getClientInquiryDetails(client, userId, inquiryId)
+
+      if (!inquiry) {
+        return NextResponse.json({ message: "Inquiry not found" }, { status: 404 })
+      }
+
+      return NextResponse.json(inquiry)
     }
 
     const inquiries = await fetchClientInquiries(client, userId)

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getAuthenticatedOwner } from "@/lib/services/owner/auth"
 import { fetchOwnerBookings } from "@/lib/services/owner/bookings"
+import { getOwnerBookingDetails } from "@/lib/services/details/server"
 
 export async function GET(request: Request) {
   try {
@@ -8,6 +9,19 @@ export async function GET(request: Request) {
 
     if (!userId || !client) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const bookingId = searchParams.get("id")?.trim()
+
+    if (bookingId) {
+      const booking = await getOwnerBookingDetails(client, userId, bookingId)
+
+      if (!booking) {
+        return NextResponse.json({ message: "Booking not found" }, { status: 404 })
+      }
+
+      return NextResponse.json(booking)
     }
 
     const bookings = await fetchOwnerBookings(client, userId)

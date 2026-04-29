@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { getOwnerOrgIds } from "@/lib/services/owner/organizations"
 
 const OWNER_VENUE_SELECT_VIEW =
-  "id, organization_id, organization_name, name, location, capacity, is_available, venue_type, image, price, description, additional_info, amenities"
+  "id, organization_id, organization_name, name, location, capacity, is_available, venue_type, image, price, rating, review_count, description, additional_info, amenities"
 const OWNER_VENUE_SELECT_LEGACY =
   "id, organization_id, name, location, capacity, is_available, venue_type, image, price, description"
 
@@ -26,6 +26,8 @@ export type OwnerVenueRow = {
   venue_type: string | null
   image: string | null
   price: number | null
+  rating?: number | null
+  review_count?: number | null
   description: string | null
   amenities: string[] | null
   additional_info: string | null
@@ -117,6 +119,8 @@ async function hydrateOwnerVenueById(
 
   return {
     ...(fallback.data as OwnerVenueRow),
+    rating: null,
+    review_count: null,
     amenities: null,
     additional_info: null,
   }
@@ -251,6 +255,8 @@ export async function fetchOwnerVenues(
 
     return ((legacyResult.data as OwnerVenueRow[] | null) ?? []).map((venue) => ({
       ...venue,
+      rating: null,
+      review_count: null,
       amenities: null,
       additional_info: null,
     }))

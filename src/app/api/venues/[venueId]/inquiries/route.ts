@@ -27,11 +27,12 @@ export async function POST(
       )
     }
 
-    await createInquiry(client, userId, {
+    const created = await createInquiry(client, userId, {
       venueId,
       fullName: String(body.fullName ?? ""),
       email: String(body.email ?? ""),
       eventDate: String(body.eventDate ?? ""),
+      endDate: body.endDate ? String(body.endDate) : undefined,
       message: String(body.message ?? ""),
       eventType: body.eventType ? String(body.eventType) : undefined,
       guestCount:
@@ -43,7 +44,7 @@ export async function POST(
       contactNumber: body.contactNumber ? String(body.contactNumber) : undefined,
     })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ id: created.id })
   } catch (error: unknown) {
     return NextResponse.json(
       { message: getErrorMessage(error, "Failed to send inquiry") },

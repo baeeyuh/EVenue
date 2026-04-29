@@ -32,6 +32,7 @@ export type InquiryCreateInput = {
   fullName: string
   email: string
   eventDate: string
+  endDate?: string
   message: string
   contactNumber?: string
   eventType?: string

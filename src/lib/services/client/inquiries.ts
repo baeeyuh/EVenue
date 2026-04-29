@@ -2,7 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import type { BookingStatus, InquiryStatus, InquiryCreateInput } from "@/types/inquiry-booking"
 import {
   appendInquiryThreadMessage,
-  composeInquiryMessage,
   isMissingColumnError,
   normalizeInquiryStatus,
   parseInquiryMessage,
@@ -137,18 +136,17 @@ export async function createInquiry(
   const inquiryId = crypto.randomUUID()
   const ownerId = await getVenueOwnerId(client, payload.venueId)
 
-  const composedMessage = composeInquiryMessage({
-    venueLabel: payload.venueId,
-    eventDate: payload.eventDate,
-    message: payload.message,
-    eventType: payload.eventType,
-    guestCount: payload.guestCount,
-    startTime: payload.startTime,
-    endTime: payload.endTime,
-    contactNumber: payload.contactNumber,
-    email: payload.email,
-    fullName: payload.fullName,
-  })
+  const rawMessage = payload.message.trim()
+  const fallbackStructuredMessage = [
+    `Event date: ${payload.eventDate}`,
+    payload.endDate ? `End date: ${payload.endDate}` : null,
+    typeof payload.guestCount === "number" ? `Guest count: ${payload.guestCount}` : null,
+    "",
+    "Message:",
+    rawMessage,
+  ]
+    .filter(Boolean)
+    .join("\n")
 
   const richInsert = await client.from("inquiries").insert({
     id: inquiryId,
@@ -158,12 +156,13 @@ export async function createInquiry(
     owner_id: ownerId,
     date: payload.eventDate,
     pax: payload.guestCount ?? null,
-    message: composedMessage,
-    status: "Pending",
-  })
+    message: rawMessage,
+    status: "pending",
+  }).select("id")
 
   if (!richInsert.error) {
-    return { id: inquiryId }
+    const insertedId = (richInsert.data as Array<{ id: string }> | null)?.[0]?.id
+    return { id: insertedId ?? inquiryId }
   }
 
   const missingStructuredCols =
@@ -174,23 +173,25 @@ export async function createInquiry(
 
   if (!missingStructuredCols) {
     console.error(richInsert.error)
-    throw new Error("Failed to create inquiry")
+    throw new Error(richInsert.error.message || "Failed to create inquiry")
   }
 
   const fallbackInsert = await client.from("inquiries").insert({
     id: inquiryId,
     venue_id: payload.venueId,
     user_id: userId,
-    message: composedMessage,
-    status: "Pending",
-  })
+    message: fallbackStructuredMessage,
+    status: "pending",
+  }).select("id")
 
   if (fallbackInsert.error) {
     console.error(fallbackInsert.error)
-    throw new Error("Failed to create inquiry")
+    throw new Error(fallbackInsert.error.message || "Failed to create inquiry")
   }
 
-  return { id: inquiryId }
+  const fallbackId = (fallbackInsert.data as Array<{ id: string }> | null)?.[0]?.id
+
+  return { id: fallbackId ?? inquiryId }
 }
 
 export async function getClientInquiries(
@@ -306,13 +307,19 @@ export async function confirmBooking(
 
   const parsed = parseInquiryMessage(inquiryData.message)
   const bookingDate = inquiryData.date ?? parsed.eventDate
+  const bookingEndDate = parsed.endDate || null
 
   if (!bookingDate) {
     throw new Error("Inquiry event date is missing")
   }
 
+  if (bookingEndDate && bookingEndDate < bookingDate) {
+    throw new Error("Inquiry end date is before the start date")
+  }
+
   const startDate = `${bookingDate}T00:00:00`
   const dayEnd = `${bookingDate}T23:59:59`
+  const endDate = bookingEndDate ? `${bookingEndDate}T23:59:59` : null
 
   const existingByInquiry = await client
     .from("bookings")
@@ -360,7 +367,7 @@ export async function confirmBooking(
       owner_id: inquiryData.owner_id ?? null,
       event_date: bookingDate,
       start_date: startDate,
-      end_date: null,
+      end_date: endDate,
       guest_count: inquiryData.pax ?? parsed.guestCount,
       status: "confirmed",
       code,
@@ -382,7 +389,7 @@ export async function confirmBooking(
       venue_id: inquiryData.venue_id,
       user_id: userId,
       start_date: startDate,
-      end_date: null,
+      end_date: endDate,
       status: "confirmed",
       code,
     })
@@ -403,7 +410,7 @@ export async function confirmBooking(
       venue_id: inquiryData.venue_id,
       user_id: userId,
       start_date: startDate,
-      end_date: null,
+      end_date: endDate,
       status: "confirmed",
     })
     .select("id, status, created_at")
@@ -450,15 +457,17 @@ export async function sendClientInquiryMessage(
     throw new Error("Inquiry not found")
   }
 
-  const updatedMessage = appendInquiryThreadMessage(inquiry.message, {
+  const nextThread = appendInquiryThreadMessage(inquiry.message, {
     role: "client",
     message: nextMessage,
   })
 
   const updateResult = await client
     .from("inquiries")
-    .update({ message: updatedMessage })
+    .update({ message: nextThread })
     .eq("id", inquiryId)
+    .eq("user_id", userId)
+    .select("id")
 
   if (updateResult.error) {
     console.error(updateResult.error)
@@ -467,6 +476,6 @@ export async function sendClientInquiryMessage(
 
   return {
     id: inquiryId,
-    message: updatedMessage,
+    message: nextMessage,
   }
 }

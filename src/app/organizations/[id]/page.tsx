@@ -10,7 +10,7 @@ import {
   fetchOrganizationRatingByOrganization,
   fetchOrganizationSocialsByOrganizationId,
 } from "@/lib/services/organizations"
-import { fetchVenuesByOrganizationId } from "@/lib/services/venues"
+import { fetchVenueGalleryByVenueIds, fetchVenuesByOrganizationId } from "@/lib/services/venues"
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -42,6 +42,8 @@ export default async function OrganizationPublicPage({ params }: Props) {
     fetchOrganizationRatingByOrganization(id, org.name),
   ])
 
+  const venueGallery = await fetchVenueGalleryByVenueIds(orgVenues.map((venue) => venue.id))
+
   const normalizedOrg = {
     ...org,
     logo: org.logo ?? "",
@@ -54,7 +56,7 @@ export default async function OrganizationPublicPage({ params }: Props) {
     opening_hours: org.opening_hours ?? undefined,
     established: org.established ?? undefined,
     specializations: org.specializations ?? [],
-    gallery: org.gallery ?? [],
+    gallery: venueGallery,
     venue_count: orgRatings?.venue_count ?? orgVenues.length,
     rating: orgRatings?.rating,
     review_count: orgRatings?.review_count,

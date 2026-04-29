@@ -23,6 +23,8 @@ type OwnerVenue = {
   venue_type: string | null
   image: string | null
   price: number | null
+  rating?: number | null
+  review_count?: number | null
   description: string | null
 }
 
@@ -183,8 +185,8 @@ export default function OwnerVenuesContent() {
                     price={venue.price !== null ? `₱${Number(venue.price).toLocaleString()}` : "Price on request"}
                     image={venue.image ?? "/images/placeholder-venue.jpg"}
                     amenities={venue.amenities ?? []}
-                    rating={0}
-                    reviewCount={0}
+                    rating={Number(venue.rating ?? 0)}
+                    reviewCount={venue.review_count ?? 0}
                     ownerName="Your listing"
                     ownerInitials="YL"
                     description={venue.description ?? "No description added yet."}

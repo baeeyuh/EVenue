@@ -3,6 +3,7 @@ import type { InquiryStatus } from "@/types/inquiry-booking"
 export type ParsedInquiryMessage = {
   venue: string
   eventDate: string
+  endDate: string
   eventType: string
   guestCount: number | null
   startTime: string
@@ -133,6 +134,7 @@ export function normalizeInquiryStatus(status: string | null | undefined): Inqui
 export function composeInquiryMessage(payload: {
   venueLabel: string
   eventDate: string
+  endDate?: string
   message: string
   eventType?: string
   guestCount?: number
@@ -145,6 +147,7 @@ export function composeInquiryMessage(payload: {
   const lines = [
     `Venue: ${payload.venueLabel}`,
     `Event date: ${payload.eventDate}`,
+    payload.endDate ? `End date: ${payload.endDate}` : null,
     payload.eventType ? `Event type: ${payload.eventType}` : null,
     payload.guestCount ? `Guest count: ${payload.guestCount}` : null,
     payload.startTime ? `Start time: ${payload.startTime}` : null,
@@ -170,6 +173,7 @@ export function parseInquiryMessage(message: string): ParsedInquiryMessage {
   }
 
   const eventDate = getValue("Event date")
+  const endDate = getValue("End date")
   const guestCountRaw = getValue("Guest count")
   const parsedGuestCount = Number(guestCountRaw)
 
@@ -180,6 +184,7 @@ export function parseInquiryMessage(message: string): ParsedInquiryMessage {
   return {
     venue: getValue("Venue"),
     eventDate,
+    endDate,
     eventType: getValue("Event type"),
     guestCount: Number.isFinite(parsedGuestCount) ? parsedGuestCount : null,
     startTime: getValue("Start time"),

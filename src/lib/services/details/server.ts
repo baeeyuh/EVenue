@@ -104,20 +104,39 @@ type RelationalInquiryRow = {
 type OwnerInquiryDetailsViewRow = {
   id: string
   status: string | null
-  created_at: string | null
-  venue_id: string | null
-  venue_name: string | null
-  location: string | null
-  organization_id: string | null
-  client_id: string | null
-  client_name: string | null
-  client_email: string | null
-  owner_name?: string | null
-  owner_email?: string | null
-  message: string | null
   date: string | null
+  created_at: string | null
   pax: number | null
-  messages?: unknown
+  venue: {
+    id: string | null
+    name: string
+    location: string | null
+    image: string | null
+    rating: number | null
+    review_count: number | null
+    venue_type: string | null
+    capacity: number | null
+    price: number | null
+    is_available: boolean | null
+    amenities: string[] | null
+    description: string | null
+    additional_info: string | null
+  } | null
+  client: {
+    id: string | null
+    name: string
+    email: string | null
+  } | null
+  owner: {
+    name: string
+    email: string | null
+  } | null
+  messages: Array<{
+    id: string
+    message: string
+    sender_role: string
+    created_at: string
+  }> | null
 }
 
 type OwnerBookingDetailsViewRow = {
@@ -127,34 +146,77 @@ type OwnerBookingDetailsViewRow = {
   created_at: string | null
   event_date: string | null
   end_date: string | null
-  venue_id: string | null
-  venue_name: string | null
-  location: string | null
-  organization_id: string | null
-  client_id: string | null
-  client_name: string | null
-  client_email: string | null
-  owner_name?: string | null
-  owner_email?: string | null
-  messages?: unknown
+  venue: {
+    id: string | null
+    name: string
+    location: string | null
+    image: string | null
+    rating: number | null
+    review_count: number | null
+    venue_type: string | null
+    capacity: number | null
+    price: number | null
+    is_available: boolean | null
+    amenities: string[] | null
+    description: string | null
+    additional_info: string | null
+  } | null
+  client: {
+    id: string | null
+    name: string
+    email: string | null
+  } | null
+  owner: {
+    name: string
+    email: string | null
+  } | null
+  inquiry: {
+    pax: number | null
+    messages: Array<{
+      id: string
+      message: string
+      sender_role: string
+      created_at: string
+    }> | null
+  } | null
 }
 
 type ClientInquiryDetailsViewRow = {
   id: string
   status: string | null
-  created_at: string | null
-  venue_id: string | null
-  venue_name: string | null
-  location: string | null
-  client_id: string | null
-  client_name: string | null
-  client_email: string | null
-  owner_name?: string | null
-  owner_email?: string | null
-  message: string | null
   date: string | null
+  created_at: string | null
   pax: number | null
-  messages?: unknown
+  venue: {
+    id: string | null
+    name: string
+    location: string | null
+    image: string | null
+    rating: number | null
+    review_count: number | null
+    venue_type: string | null
+    capacity: number | null
+    price: number | null
+    is_available: boolean | null
+    amenities: string[] | null
+    description: string | null
+    additional_info: string | null
+  } | null
+  client: {
+    id: string | null
+    name: string
+    email: string | null
+  } | null
+  owner: {
+    name: string
+    email: string | null
+  } | null
+  messages: Array<{
+    id: string
+    message: string
+    sender_role: string
+    created_at: string
+  }> | null
 }
 
 type ClientBookingDetailsViewRow = {
@@ -164,15 +226,39 @@ type ClientBookingDetailsViewRow = {
   created_at: string | null
   event_date: string | null
   end_date: string | null
-  venue_id: string | null
-  venue_name: string | null
-  location: string | null
-  client_id: string | null
-  client_name: string | null
-  client_email: string | null
-  owner_name?: string | null
-  owner_email?: string | null
-  messages?: unknown
+  venue: {
+    id: string | null
+    name: string
+    location: string | null
+    image: string | null
+    rating: number | null
+    review_count: number | null
+    venue_type: string | null
+    capacity: number | null
+    price: number | null
+    is_available: boolean | null
+    amenities: string[] | null
+    description: string | null
+    additional_info: string | null
+  } | null
+  client: {
+    id: string | null
+    name: string
+    email: string | null
+  } | null
+  owner: {
+    name: string
+    email: string | null
+  } | null
+  inquiry: {
+    pax: number | null
+    messages: Array<{
+      id: string
+      message: string
+      sender_role: string
+      created_at: string
+    }> | null
+  } | null
 }
 
 function pickOne<T>(value: T | T[] | null | undefined): T | null {
@@ -398,6 +484,121 @@ function fallbackMessagesFromInquiry(inquiry: InquiryBaseRow): DetailMessage[] {
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 }
 
+async function fetchInquiryMessagesByInquiryId(
+  client: SupabaseClient,
+  inquiryId: string,
+  fallbackMessage?: string,
+  fallbackCreatedAt?: string | null,
+): Promise<DetailMessage[]> {
+  const inquiryLookup = await client
+    .from("inquiries")
+    .select("id, message, created_at")
+    .eq("id", inquiryId)
+    .maybeSingle()
+
+  if (inquiryLookup.error && !fallbackMessage) {
+    return []
+  }
+
+  const sourceMessage =
+    (inquiryLookup.data as { message?: string | null } | null)?.message ?? fallbackMessage ?? ""
+  const sourceCreatedAt =
+    (inquiryLookup.data as { created_at?: string | null } | null)?.created_at ?? fallbackCreatedAt
+
+  if (!sourceMessage.trim()) {
+    return []
+  }
+
+  return getInquiryThread(sourceMessage, sourceCreatedAt)
+    .map((message) => ({
+      id: message.id,
+      message: message.message,
+      sender_role: message.role,
+      created_at: message.createdAt,
+    }))
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+}
+
+async function fetchMessagesForBooking(client: SupabaseClient, bookingId: string): Promise<DetailMessage[]> {
+  const inquiry = await resolveInquiryForBooking(client, bookingId)
+
+  if (!inquiry) {
+    return []
+  }
+
+  return fetchMessages(client, inquiry)
+}
+
+async function resolveInquiryForBooking(
+  client: SupabaseClient,
+  bookingId: string
+): Promise<InquiryBaseRow | null> {
+  const booking = await fetchBookingBase(client, bookingId)
+
+  if (!booking) {
+    return null
+  }
+
+  if (booking.inquiry_id) {
+    return fetchInquiryBase(client, booking.inquiry_id)
+  }
+
+  const bookingUserId = booking.client_id ?? booking.user_id ?? null
+
+  if (!bookingUserId || !booking.venue_id) {
+    return null
+  }
+
+  const preferredLookup = await client
+    .from("inquiries")
+    .select("id, status, created_at, date, pax, message, venue_id, user_id, client_id, owner_id")
+    .eq("venue_id", booking.venue_id)
+    .eq("user_id", bookingUserId)
+    .order("created_at", { ascending: false })
+    .limit(30)
+
+  let inquiryRows = (preferredLookup.data as InquiryBaseRow[] | null) ?? []
+  let inquiryError = preferredLookup.error
+
+  if (
+    inquiryError &&
+    (isMissingColumnError(inquiryError, "client_id") ||
+      isMissingColumnError(inquiryError, "owner_id") ||
+      isMissingColumnError(inquiryError, "date") ||
+      isMissingColumnError(inquiryError, "pax"))
+  ) {
+    const fallbackLookup = await client
+      .from("inquiries")
+      .select("id, status, created_at, message, venue_id, user_id")
+      .eq("venue_id", booking.venue_id)
+      .eq("user_id", bookingUserId)
+      .order("created_at", { ascending: false })
+      .limit(30)
+
+    inquiryRows = (fallbackLookup.data as InquiryBaseRow[] | null) ?? []
+    inquiryError = fallbackLookup.error
+  }
+
+  if (inquiryError || inquiryRows.length === 0) {
+    return null
+  }
+
+  const bookingDateValue = booking.event_date ?? booking.start_date ?? null
+  const bookingDate = bookingDateValue ? bookingDateValue.slice(0, 10) : null
+
+  if (!bookingDate) {
+    return inquiryRows[0] ?? null
+  }
+
+  const matchedByDate = inquiryRows.find((item) => {
+    const parsed = parseInquiryMessage(item.message)
+    const inquiryDate = item.date ?? parsed.eventDate
+    return inquiryDate?.slice(0, 10) === bookingDate
+  })
+
+  return matchedByDate ?? inquiryRows[0] ?? null
+}
+
 function parseViewMessages(value: unknown): DetailMessage[] {
   if (!Array.isArray(value)) {
     return []
@@ -452,33 +653,7 @@ function isMissingRelationError(error: unknown) {
 }
 
 async function fetchMessages(client: SupabaseClient, inquiry: InquiryBaseRow): Promise<DetailMessage[]> {
-  const messageQuery = await client
-    .from("inquiry_messages")
-    .select("id, message, sender_role, created_at")
-    .eq("inquiry_id", inquiry.id)
-    .order("created_at", { ascending: true })
-
-  if (messageQuery.error) {
-    return fallbackMessagesFromInquiry(inquiry)
-  }
-
-  const messages = ((messageQuery.data ?? []) as Array<{
-    id: string
-    message: string | null
-    sender_role: string | null
-    created_at: string | null
-  }>).map((item) => ({
-    id: item.id,
-    message: item.message ?? "",
-    sender_role: (item.sender_role === "owner" ? "owner" : "client") as "owner" | "client",
-    created_at: item.created_at ?? new Date(0).toISOString(),
-  }))
-
-  if (messages.length > 0) {
-    return messages
-  }
-
-  return fallbackMessagesFromInquiry(inquiry)
+  return fetchInquiryMessagesByInquiryId(client, inquiry.id, inquiry.message, inquiry.created_at)
 }
 
 async function fetchInquiryBase(client: SupabaseClient, inquiryId: string): Promise<InquiryBaseRow | null> {
@@ -551,15 +726,37 @@ export async function getClientInquiryDetails(
     .from("client_inquiry_details_view")
     .select("*")
     .eq("id", inquiryId)
-    .eq("client_id", userId)
     .maybeSingle()
 
   if (!viewLookup.error && viewLookup.data) {
     const row = viewLookup.data as ClientInquiryDetailsViewRow
-    const fallbackMessage = row.message ?? ""
-    const fallbackTimestamp = row.created_at ?? new Date(0).toISOString()
-    const messages = parseViewMessages(row.messages)
-    const venue = await fetchVenue(client, row.venue_id)
+
+    const viewMessages = parseViewMessages(row.messages)
+    const threadMessages = await fetchInquiryMessagesByInquiryId(client, row.id, undefined, row.created_at)
+    const messages = threadMessages.length > 0 ? threadMessages : viewMessages
+
+    const venue: DetailVenue = row.venue
+      ? {
+          id: row.venue.id,
+          name: row.venue.name,
+          location: row.venue.location,
+          price: row.venue.price,
+          capacity: row.venue.capacity,
+          venue_type: row.venue.venue_type,
+          description: row.venue.description,
+          additional_info: row.venue.additional_info,
+          image: row.venue.image,
+          is_available: row.venue.is_available,
+          amenities: row.venue.amenities,
+          rating: row.venue.rating,
+          review_count: row.venue.review_count,
+        }
+      : {
+          id: null,
+          name: "Unknown venue",
+          location: null,
+          price: null,
+        }
 
     return {
       id: row.id,
@@ -567,32 +764,10 @@ export async function getClientInquiryDetails(
       pax: row.pax,
       status: row.status,
       created_at: row.created_at,
-      venue: {
-        ...venue,
-        name: venue.name || row.venue_name || "Unknown venue",
-        location: venue.location ?? row.location ?? null,
-      },
-      client: {
-        id: row.client_id,
-        name: row.client_name ?? "Unknown",
-        email: row.client_email ?? null,
-      },
-      owner: {
-        id: null,
-        name: row.owner_name ?? "Unknown",
-        email: row.owner_email ?? null,
-      },
-      messages:
-        messages.length > 0
-          ? messages
-          : getInquiryThread(fallbackMessage, fallbackTimestamp)
-              .map((item) => ({
-                id: item.id,
-                message: item.message,
-                sender_role: item.role,
-                created_at: item.createdAt,
-              }))
-              .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+      venue,
+      client: row.client ? { id: row.client.id, name: row.client.name, email: row.client.email } : { id: null, name: "Unknown", email: null },
+      owner: row.owner ? { id: null, name: row.owner.name, email: row.owner.email } : { id: null, name: "Unknown", email: null },
+      messages: messages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
     }
   }
 
@@ -639,57 +814,60 @@ export async function getOwnerInquiryDetails(
     .from("owner_inquiry_details_view")
     .select("*")
     .eq("id", inquiryId)
-    .in("organization_id", orgIds)
     .maybeSingle()
+
+  if (!viewLookup.error && viewLookup.data) {
+    const row = viewLookup.data as OwnerInquiryDetailsViewRow
+
+    const viewMessages = parseViewMessages(row.messages)
+    const threadMessages = await fetchInquiryMessagesByInquiryId(client, row.id, undefined, row.created_at)
+    const messages = threadMessages.length > 0 ? threadMessages : viewMessages
+
+    const venue: DetailVenue = row.venue
+      ? {
+          id: row.venue.id,
+          name: row.venue.name,
+          location: row.venue.location,
+          price: row.venue.price,
+          capacity: row.venue.capacity,
+          venue_type: row.venue.venue_type,
+          description: row.venue.description,
+          additional_info: row.venue.additional_info,
+          image: row.venue.image,
+          is_available: row.venue.is_available,
+          amenities: row.venue.amenities,
+          rating: row.venue.rating,
+          review_count: row.venue.review_count,
+        }
+      : {
+          id: null,
+          name: "Unknown venue",
+          location: null,
+          price: null,
+        }
+
+    return {
+      id: row.id,
+      date: row.date,
+      pax: row.pax,
+      status: row.status,
+      created_at: row.created_at,
+      venue,
+      client: row.client ? { id: row.client.id, name: row.client.name, email: row.client.email } : { id: null, name: "Unknown", email: null },
+      owner: {
+        id: ownerId,
+        name: row.owner?.name ?? "Unknown",
+        email: row.owner?.email ?? null,
+      },
+      messages: messages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+    }
+  }
 
   if (viewLookup.error) {
     throw new Error("Failed to fetch inquiry details")
   }
 
-  const row = (viewLookup.data as OwnerInquiryDetailsViewRow | null) ?? null
-
-  if (!row) {
-    return null
-  }
-
-  const fallbackMessage = row.message ?? ""
-  const fallbackTimestamp = row.created_at ?? new Date(0).toISOString()
-  const messages = parseViewMessages(row.messages)
-  const venue = await fetchVenue(client, row.venue_id)
-
-  return {
-    id: row.id,
-    date: row.date,
-    pax: row.pax,
-    status: row.status,
-    created_at: row.created_at,
-    venue: {
-      ...venue,
-      name: venue.name || row.venue_name || "Unknown venue",
-      location: venue.location ?? row.location ?? null,
-    },
-    client: {
-      id: row.client_id,
-      name: row.client_name ?? "Unknown",
-      email: row.client_email ?? null,
-    },
-    owner: {
-      id: ownerId,
-      name: row.owner_name ?? "Unknown",
-      email: row.owner_email ?? null,
-    },
-    messages:
-      messages.length > 0
-        ? messages
-        : getInquiryThread(fallbackMessage, fallbackTimestamp)
-            .map((item) => ({
-              id: item.id,
-              message: item.message,
-              sender_role: item.role,
-              created_at: item.createdAt,
-            }))
-            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
-  }
+  return null
 }
 
 async function fetchBookingBase(client: SupabaseClient, bookingId: string): Promise<BookingBaseRow | null> {
@@ -769,43 +947,57 @@ export async function getClientBookingDetails(
     .from("client_booking_details_view")
     .select("*")
     .eq("id", bookingId)
-    .eq("client_id", userId)
     .maybeSingle()
 
   if (!viewLookup.error && viewLookup.data) {
     const row = viewLookup.data as ClientBookingDetailsViewRow
-    const thread = parseViewMessages(row.messages)
-    const venue = await fetchVenue(client, row.venue_id)
+    const resolvedInquiry = await resolveInquiryForBooking(client, row.id)
+    const resolvedInquiryDetails = resolvedInquiry
+      ? await buildInquiryDetails(client, resolvedInquiry)
+      : null
+    const viewMessages = parseViewMessages(row.inquiry?.messages)
+    const inquiryMessages =
+      resolvedInquiryDetails?.messages?.length
+        ? resolvedInquiryDetails.messages
+        : viewMessages.length > 0
+          ? viewMessages
+          : await fetchMessagesForBooking(client, row.id)
 
-    const detailVenue: DetailVenue = {
-      ...venue,
-      name: venue.name || row.venue_name || "Unknown venue",
-      location: venue.location ?? row.location ?? null,
-    }
+    const venue: DetailVenue = row.venue
+      ? {
+          id: row.venue.id,
+          name: row.venue.name,
+          location: row.venue.location,
+          price: row.venue.price,
+          capacity: row.venue.capacity,
+          venue_type: row.venue.venue_type,
+          description: row.venue.description,
+          additional_info: row.venue.additional_info,
+          image: row.venue.image,
+          is_available: row.venue.is_available,
+          amenities: row.venue.amenities,
+          rating: row.venue.rating,
+          review_count: row.venue.review_count,
+        }
+      : {
+          id: null,
+          name: "Unknown venue",
+          location: null,
+          price: null,
+        }
 
-    const detailClient: DetailPerson = {
-      id: row.client_id,
-      name: row.client_name ?? "Unknown",
-      email: row.client_email ?? null,
-    }
-
-    const owner: DetailPerson = {
-      id: null,
-      name: row.owner_name ?? "Unknown",
-      email: row.owner_email ?? null,
-    }
-
-    const inquiry: InquiryDetails = {
-      id: row.id,
-      date: row.event_date,
-      pax: null,
-      status: row.status,
-      created_at: row.created_at,
-      venue: detailVenue,
-      client: detailClient,
-      owner,
-      messages: thread,
-    }
+    const inquiry: InquiryDetails =
+      resolvedInquiryDetails ?? {
+        id: row.id,
+        date: row.event_date,
+        pax: row.inquiry?.pax ?? null,
+        status: row.status,
+        created_at: row.created_at,
+        venue,
+        client: row.client ? { id: row.client.id, name: row.client.name, email: row.client.email } : { id: null, name: "Unknown", email: null },
+        owner: row.owner ? { id: null, name: row.owner.name, email: row.owner.email } : { id: null, name: "Unknown", email: null },
+        messages: inquiryMessages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+      }
 
     return {
       id: row.id,
@@ -815,11 +1007,11 @@ export async function getClientBookingDetails(
       event_date: row.event_date,
       start_date: row.event_date,
       end_date: row.end_date,
-      guest_count: null,
-      price: null,
-  venue: detailVenue,
-      client: detailClient,
-      owner,
+      guest_count: row.inquiry?.pax ?? null,
+      price: row.venue?.price ?? null,
+      venue,
+      client: row.client ? { id: row.client.id, name: row.client.name, email: row.client.email } : { id: null, name: "Unknown", email: null },
+      owner: row.owner ? { id: null, name: row.owner.name, email: row.owner.email } : { id: null, name: "Unknown", email: null },
       inquiry,
     }
   }
@@ -854,64 +1046,86 @@ export async function getOwnerBookingDetails(
     .from("owner_booking_details_view")
     .select("*")
     .eq("id", bookingId)
-    .in("organization_id", orgIds)
     .maybeSingle()
+
+  if (!viewLookup.error && viewLookup.data) {
+    const row = viewLookup.data as OwnerBookingDetailsViewRow
+    const resolvedInquiry = await resolveInquiryForBooking(client, row.id)
+    const resolvedInquiryDetails = resolvedInquiry
+      ? await buildInquiryDetails(client, resolvedInquiry)
+      : null
+    const viewMessages = parseViewMessages(row.inquiry?.messages)
+    const inquiryMessages =
+      resolvedInquiryDetails?.messages?.length
+        ? resolvedInquiryDetails.messages
+        : viewMessages.length > 0
+          ? viewMessages
+          : await fetchMessagesForBooking(client, row.id)
+
+    const venue: DetailVenue = row.venue
+      ? {
+          id: row.venue.id,
+          name: row.venue.name,
+          location: row.venue.location,
+          price: row.venue.price,
+          capacity: row.venue.capacity,
+          venue_type: row.venue.venue_type,
+          description: row.venue.description,
+          additional_info: row.venue.additional_info,
+          image: row.venue.image,
+          is_available: row.venue.is_available,
+          amenities: row.venue.amenities,
+          rating: row.venue.rating,
+          review_count: row.venue.review_count,
+        }
+      : {
+          id: null,
+          name: "Unknown venue",
+          location: null,
+          price: null,
+        }
+
+    const inquiry: InquiryDetails =
+      resolvedInquiryDetails ?? {
+        id: row.id,
+        date: row.event_date,
+        pax: row.inquiry?.pax ?? null,
+        status: row.status,
+        created_at: row.created_at,
+        venue,
+        client: row.client ? { id: row.client.id, name: row.client.name, email: row.client.email } : { id: null, name: "Unknown", email: null },
+        owner: {
+          id: ownerId,
+          name: row.owner?.name ?? "Unknown",
+          email: row.owner?.email ?? null,
+        },
+        messages: inquiryMessages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+      }
+
+    return {
+      id: row.id,
+      code: row.code,
+      status: row.status,
+      created_at: row.created_at,
+      event_date: row.event_date,
+      start_date: row.event_date,
+      end_date: row.end_date,
+      guest_count: row.inquiry?.pax ?? null,
+      price: row.venue?.price ?? null,
+      venue,
+      client: row.client ? { id: row.client.id, name: row.client.name, email: row.client.email } : { id: null, name: "Unknown", email: null },
+      owner: {
+        id: ownerId,
+        name: row.owner?.name ?? "Unknown",
+        email: row.owner?.email ?? null,
+      },
+      inquiry,
+    }
+  }
 
   if (viewLookup.error) {
     throw new Error("Failed to fetch booking details")
   }
 
-  const row = (viewLookup.data as OwnerBookingDetailsViewRow | null) ?? null
-
-  if (!row) {
-    return null
-  }
-
-  const owner: DetailPerson = {
-    id: ownerId,
-    name: row.owner_name ?? "Unknown",
-    email: row.owner_email ?? null,
-  }
-  const thread = parseViewMessages(row.messages)
-  const venue = await fetchVenue(client, row.venue_id)
-
-  const sharedVenue: DetailVenue = {
-    ...venue,
-    name: venue.name || row.venue_name || "Unknown venue",
-    location: venue.location ?? row.location ?? null,
-  }
-
-  const sharedClient: DetailPerson = {
-    id: row.client_id,
-    name: row.client_name ?? "Unknown",
-    email: row.client_email ?? null,
-  }
-
-  const inquiry: InquiryDetails = {
-    id: row.id,
-    date: row.event_date,
-    pax: null,
-    status: row.status,
-    created_at: row.created_at,
-    venue: sharedVenue,
-    client: sharedClient,
-    owner,
-    messages: thread,
-  }
-
-  return {
-    id: row.id,
-    code: row.code,
-    status: row.status,
-    created_at: row.created_at,
-    event_date: row.event_date,
-    start_date: row.event_date,
-    end_date: row.end_date,
-    guest_count: inquiry.pax,
-    price: null,
-    venue: sharedVenue,
-    client: sharedClient,
-    owner,
-    inquiry,
-  }
+  return null
 }

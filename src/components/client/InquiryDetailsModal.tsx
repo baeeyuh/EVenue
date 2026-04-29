@@ -413,14 +413,6 @@ export default function InquiryDetailsModal({
                             }`}
                           >
                             <p className="whitespace-pre-wrap">{item.message}</p>
-                            <p
-                              className={`mt-1 text-[11px] ${
-                                isOwnMessage ? "text-primary-foreground/70" : "text-muted-foreground"
-                              }`}
-                            >
-                              {item.sender_role === "client" ? "Client" : "Owner"}
-                              {item.created_at ? ` • ${formatMessageTime(item.created_at)}` : ""}
-                            </p>
                           </div>
                         </div>
                       )

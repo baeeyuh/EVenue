@@ -20,6 +20,12 @@ export type VenueDetailsRow = {
   is_available: boolean | null
 }
 
+export type VenueGalleryRow = {
+  venue_id: string
+  name: string | null
+  image: string | null
+}
+
 type VenueRpcRow = VenueDetailsRow & {
   created_at: string | null
 }
@@ -199,7 +205,7 @@ export async function createVenueInquiry(payload: VenueInquiryPayload) {
     user_id: payload.userId,
     venue_id: payload.venueId,
     message: composedMessage,
-    status: "Pending",
+    status: "pending",
   })
 
   if (error) {
@@ -208,4 +214,23 @@ export async function createVenueInquiry(payload: VenueInquiryPayload) {
   }
 
   return { success: true }
+}
+
+export async function fetchVenueGalleryByVenueIds(venueIds: string[]): Promise<string[]> {
+  if (venueIds.length === 0) return []
+
+  const { data, error } = await supabaseServer
+    .from("venue_gallery_view")
+    .select("venue_id, name, image")
+    .in("venue_id", venueIds)
+    .order("name", { ascending: true })
+
+  if (error) {
+    console.error(error)
+    return []
+  }
+
+  return ((data ?? []) as VenueGalleryRow[])
+    .map((row) => row.image)
+    .filter((image): image is string => typeof image === "string" && image.trim().length > 0)
 }
