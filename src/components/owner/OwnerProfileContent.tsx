@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Mail, Phone, ShieldCheck, User2 } from "lucide-react"
+import { Building2, Mail, MapPin, Phone, ShieldCheck, User2 } from "lucide-react"
 
 import { supabaseClient } from "@/lib/supabaseClient"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -15,6 +15,10 @@ type OwnerProfile = {
   id: string
   first_name: string | null
   last_name: string | null
+  business_name?: string | null
+  business_address?: string | null
+  city?: string | null
+  province?: string | null
   email: string | null
   contact_number: string | null
   role: string | null
@@ -30,6 +34,11 @@ function formatRole(role: string | null) {
   return role.charAt(0).toUpperCase() + role.slice(1)
 }
 
+function getMetadataString(metadata: Record<string, unknown> | undefined, key: string) {
+  const value = metadata?.[key]
+  return typeof value === "string" ? value : ""
+}
+
 export default function OwnerProfileContent() {
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [profile, setProfile] = useState<OwnerProfile | null>(null)
@@ -42,6 +51,10 @@ export default function OwnerProfileContent() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [businessName, setBusinessName] = useState("")
+  const [businessAddress, setBusinessAddress] = useState("")
+  const [city, setCity] = useState("")
+  const [province, setProvince] = useState("")
 
   useEffect(() => {
     let active = true
@@ -88,11 +101,16 @@ export default function OwnerProfileContent() {
         setProfile(ownerProfile)
 
         if (ownerProfile) {
+          const metadata = user.user_metadata
           setFirstName(ownerProfile.first_name ?? "")
           setLastName(ownerProfile.last_name ?? "")
           setEmail(ownerProfile.email ?? user.email ?? "")
           setContactNumber(ownerProfile.contact_number ?? "")
           setRole(ownerProfile.role ?? null)
+          setBusinessName(ownerProfile.business_name ?? getMetadataString(metadata, "business_name"))
+          setBusinessAddress(ownerProfile.business_address ?? getMetadataString(metadata, "business_address"))
+          setCity(ownerProfile.city ?? getMetadataString(metadata, "city"))
+          setProvince(ownerProfile.province ?? getMetadataString(metadata, "province"))
         }
       } catch (fetchError: unknown) {
         if (!active) return
@@ -129,7 +147,15 @@ export default function OwnerProfileContent() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ firstName, lastName, contactNumber }),
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          contactNumber,
+          businessName,
+          businessAddress,
+          city,
+          province,
+        }),
       })
 
       const updated = (await response.json()) as OwnerProfile | null
@@ -138,6 +164,15 @@ export default function OwnerProfileContent() {
         throw new Error("Failed to update profile")
       }
 
+      await supabaseClient.auth.updateUser({
+        data: {
+          business_name: businessName.trim() || null,
+          business_address: businessAddress.trim() || null,
+          city: city.trim() || null,
+          province: province.trim() || null,
+        },
+      })
+
       if (updated) {
         setProfile(updated)
         setFirstName(updated.first_name ?? "")
@@ -145,6 +180,10 @@ export default function OwnerProfileContent() {
         setEmail(updated.email ?? email)
         setContactNumber(updated.contact_number ?? "")
         setRole(updated.role ?? null)
+        setBusinessName(updated.business_name ?? businessName)
+        setBusinessAddress(updated.business_address ?? businessAddress)
+        setCity(updated.city ?? city)
+        setProvince(updated.province ?? province)
       }
 
       setSuccess("Profile updated successfully")
@@ -282,6 +321,68 @@ export default function OwnerProfileContent() {
                       placeholder="09XX XXX XXXX"
                       className="h-11 rounded-xl border-border/60 bg-background pl-10"
                     />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Business Name
+                  </Label>
+                  <div className="relative">
+                    <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      placeholder="Your business or organization name"
+                      className="h-11 rounded-xl border-border/60 bg-background pl-10"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Business Address
+                  </Label>
+                  <div className="relative">
+                    <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={businessAddress}
+                      onChange={(e) => setBusinessAddress(e.target.value)}
+                      placeholder="Street, Barangay"
+                      className="h-11 rounded-xl border-border/60 bg-background pl-10"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                      City / Municipality
+                    </Label>
+                    <div className="relative">
+                      <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder="Cagayan de Oro"
+                        className="h-11 rounded-xl border-border/60 bg-background pl-10"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                      Province
+                    </Label>
+                    <div className="relative">
+                      <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={province}
+                        onChange={(e) => setProvince(e.target.value)}
+                        placeholder="Misamis Oriental"
+                        className="h-11 rounded-xl border-border/60 bg-background pl-10"
+                      />
+                    </div>
                   </div>
                 </div>
 
