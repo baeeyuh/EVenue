@@ -16,14 +16,26 @@ import { Button } from "@/components/ui/button"
 import { supabaseClient } from "@/lib/supabaseClient"
 import BaseNavBar, { type NavItem } from "@/components/navbar/BaseNavBar"
 
+type NotificationCounts = {
+  inquiries: number
+  bookings: number
+}
+
 export default function ClientNavBar() {
   const pathname = usePathname()
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const [notificationCounts, setNotificationCounts] = useState<NotificationCounts>({
+    inquiries: 0,
+    bookings: 0,
+  })
 
   useEffect(() => {
     supabaseClient.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null)
+      if (!data.session?.user) {
+        setNotificationCounts({ inquiries: 0, bookings: 0 })
+      }
       setLoading(false)
     })
 
@@ -31,11 +43,68 @@ export default function ClientNavBar() {
       data: { subscription },
     } = supabaseClient.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      if (!session?.user) {
+        setNotificationCounts({ inquiries: 0, bookings: 0 })
+      }
       setLoading(false)
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
+  useEffect(() => {
+    if (!user) {
+      return
+    }
+
+    let active = true
+
+    async function loadNotificationCounts() {
+      const {
+        data: { session },
+      } = await supabaseClient.auth.getSession()
+
+      const accessToken = session?.access_token
+      if (!accessToken) return
+
+      try {
+        const response = await fetch("/api/client/notification-counts", {
+          cache: "no-store",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        })
+
+        if (!response.ok) return
+
+        const counts = (await response.json()) as NotificationCounts
+        if (!active) return
+
+        setNotificationCounts({
+          inquiries: counts.inquiries ?? 0,
+          bookings: counts.bookings ?? 0,
+        })
+      } catch {
+        if (active) {
+          setNotificationCounts({ inquiries: 0, bookings: 0 })
+        }
+      }
+    }
+
+    void loadNotificationCounts()
+
+    const intervalId = window.setInterval(() => {
+      void loadNotificationCounts()
+    }, 30000)
+
+    window.addEventListener("focus", loadNotificationCounts)
+
+    return () => {
+      active = false
+      window.clearInterval(intervalId)
+      window.removeEventListener("focus", loadNotificationCounts)
+    }
+  }, [pathname, user])
 
   const homeHref = user ? "/dashboard/client" : "/"
 
@@ -57,12 +126,14 @@ export default function ClientNavBar() {
       label: "Inquiries",
       icon: MessageSquare,
       isActive: pathname.startsWith("/dashboard/client/inquiries"),
+      badgeCount: notificationCounts.inquiries,
     },
     {
       href: "/dashboard/client/bookings",
       label: "Bookings",
       icon: CalendarCheck,
       isActive: pathname.startsWith("/dashboard/client/bookings"),
+      badgeCount: notificationCounts.bookings,
     },
     {
       href: "/dashboard/client/saved",
