@@ -2,7 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import type { BookingStatus, InquiryStatus, InquiryCreateInput } from "@/types/inquiry-booking"
 import {
   appendInquiryThreadMessage,
-  composeInquiryMessage,
   isMissingColumnError,
   normalizeInquiryStatus,
   parseInquiryMessage,
@@ -137,19 +136,17 @@ export async function createInquiry(
   const inquiryId = crypto.randomUUID()
   const ownerId = await getVenueOwnerId(client, payload.venueId)
 
-  const composedMessage = composeInquiryMessage({
-    venueLabel: payload.venueId,
-    eventDate: payload.eventDate,
-    endDate: payload.endDate,
-    message: payload.message,
-    eventType: payload.eventType,
-    guestCount: payload.guestCount,
-    startTime: payload.startTime,
-    endTime: payload.endTime,
-    contactNumber: payload.contactNumber,
-    email: payload.email,
-    fullName: payload.fullName,
-  })
+  const rawMessage = payload.message.trim()
+  const fallbackStructuredMessage = [
+    `Event date: ${payload.eventDate}`,
+    payload.endDate ? `End date: ${payload.endDate}` : null,
+    typeof payload.guestCount === "number" ? `Guest count: ${payload.guestCount}` : null,
+    "",
+    "Message:",
+    rawMessage,
+  ]
+    .filter(Boolean)
+    .join("\n")
 
   const richInsert = await client.from("inquiries").insert({
     id: inquiryId,
@@ -159,7 +156,7 @@ export async function createInquiry(
     owner_id: ownerId,
     date: payload.eventDate,
     pax: payload.guestCount ?? null,
-    message: composedMessage,
+    message: rawMessage,
     status: "pending",
   }).select("id")
 
@@ -183,7 +180,7 @@ export async function createInquiry(
     id: inquiryId,
     venue_id: payload.venueId,
     user_id: userId,
-    message: composedMessage,
+    message: fallbackStructuredMessage,
     status: "pending",
   }).select("id")
 
@@ -193,6 +190,7 @@ export async function createInquiry(
   }
 
   const fallbackId = (fallbackInsert.data as Array<{ id: string }> | null)?.[0]?.id
+
   return { id: fallbackId ?? inquiryId }
 }
 
@@ -459,15 +457,17 @@ export async function sendClientInquiryMessage(
     throw new Error("Inquiry not found")
   }
 
-  const updatedMessage = appendInquiryThreadMessage(inquiry.message, {
+  const nextThread = appendInquiryThreadMessage(inquiry.message, {
     role: "client",
     message: nextMessage,
   })
 
   const updateResult = await client
     .from("inquiries")
-    .update({ message: updatedMessage })
+    .update({ message: nextThread })
     .eq("id", inquiryId)
+    .eq("user_id", userId)
+    .select("id")
 
   if (updateResult.error) {
     console.error(updateResult.error)
@@ -476,6 +476,6 @@ export async function sendClientInquiryMessage(
 
   return {
     id: inquiryId,
-    message: updatedMessage,
+    message: nextMessage,
   }
 }

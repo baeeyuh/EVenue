@@ -271,15 +271,16 @@ export async function sendOwnerInquiryMessage(
     throw new Error("Inquiry not found")
   }
 
-  const updatedMessage = appendInquiryThreadMessage(existing.message, {
-    role: "owner",
-    message: nextMessage,
-  })
-
   const updateResult = await client
     .from("inquiries")
-    .update({ message: updatedMessage })
+    .update({
+      message: appendInquiryThreadMessage(existing.message, {
+        role: "owner",
+        message: nextMessage,
+      }),
+    })
     .eq("id", inquiryId)
+    .select("id")
 
   if (updateResult.error) {
     console.error(updateResult.error)
@@ -288,6 +289,6 @@ export async function sendOwnerInquiryMessage(
 
   return {
     id: inquiryId,
-    message: updatedMessage,
+    message: nextMessage,
   }
 }
