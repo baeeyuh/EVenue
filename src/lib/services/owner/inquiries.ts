@@ -182,26 +182,41 @@ export async function updateInquiryStatus(
 
   const statusValue = status === "accepted" ? "Accepted" : "Rejected"
 
-  let updateResult = await client
+  let updateQuery = client
     .from("inquiries")
     .update({ status: statusValue, owner_id: ownerId })
     .eq("id", inquiryId)
-    .eq("venue_id", existing.venue_id)
+
+  if (existing.venue_id) {
+    updateQuery = updateQuery.eq("venue_id", existing.venue_id)
+  }
+
+  let updateResult = await updateQuery
 
   if (updateResult.error && isMissingColumnError(updateResult.error, "owner_id")) {
-    updateResult = await client
+    let fallbackQuery = client
       .from("inquiries")
       .update({ status: statusValue })
       .eq("id", inquiryId)
-      .eq("venue_id", existing.venue_id)
+
+    if (existing.venue_id) {
+      fallbackQuery = fallbackQuery.eq("venue_id", existing.venue_id)
+    }
+
+    updateResult = await fallbackQuery
   }
 
   if (updateResult.error && isMissingColumnError(updateResult.error, "status")) {
-    updateResult = await client
+    let legacyStatusQuery = client
       .from("inquiries")
       .update({ status })
       .eq("id", inquiryId)
-      .eq("venue_id", existing.venue_id)
+
+    if (existing.venue_id) {
+      legacyStatusQuery = legacyStatusQuery.eq("venue_id", existing.venue_id)
+    }
+
+    updateResult = await legacyStatusQuery
   }
 
   if (updateResult.error) {

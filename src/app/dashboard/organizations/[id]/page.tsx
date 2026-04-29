@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
 import { fetchOrganizations } from "@/lib/services/organizations"
-import { fetchVenues } from "@/lib/services/venues"
+import { fetchVenueGalleryByVenueIds, fetchVenues } from "@/lib/services/venues"
 import OrganizationHero from "@/components/organizations/OrganizationHero"
 import OrganizationStats from "@/components/organizations/OrganizationStats"
 import OrganizationAbout from "@/components/organizations/OrganizationAbout"
@@ -14,6 +14,7 @@ export default async function OrganizationPage({ params }: { params: { id: strin
   if (!baseOrg) notFound()
 
   const orgVenues = venues.filter((venue) => venue.organizationId === baseOrg.id)
+  const venueGallery = await fetchVenueGalleryByVenueIds(orgVenues.map((venue) => venue.id))
 
   const org = {
     ...baseOrg,
@@ -32,7 +33,7 @@ export default async function OrganizationPage({ params }: { params: { id: strin
     opening_hours: "",
     openingHours: "",
     established: undefined,
-    gallery: [],
+    gallery: venueGallery,
   }
 
 
