@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
-import { MapPin, Building2 } from "lucide-react"
+import { MapPin, Building2, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -43,6 +43,7 @@ export default function VenueDetailsModal({
   context,
   onOwnerEdit,
   onOwnerViewAvailability,
+  onOwnerDelete,
 }: Props) {
   const isOwnerContext = context === "owner"
   const [availabilityOpen, setAvailabilityOpen] = useState(false)
@@ -169,6 +170,18 @@ export default function VenueDetailsModal({
                       }}
                     >
                       View Availability
+                    </Button>
+
+                    <Button
+                      variant="destructive"
+                      className="col-span-2 w-full rounded-full"
+                      onClick={() => {
+                        onClose()
+                        onOwnerDelete?.(id, name)
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete Venue
                     </Button>
                   </>
                 ) : (

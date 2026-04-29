@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import VenueCard from "@/components/common/VenueCard"
 import PageSectionHeader from "@/components/common/PageSectionHeader"
 import OwnerVenueAvailabilityModal from "@/components/owner/OwnerVenueAvailabilityModal"
+import OwnerVenueDeleteDialog from "@/components/owner/OwnerVenueDeleteDialog"
 
 type OwnerVenue = {
   id: string
@@ -31,9 +32,13 @@ export default function OwnerVenuesContent() {
   const [venues, setVenues] = useState<OwnerVenue[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const [availabilityOpen, setAvailabilityOpen] = useState(false)
   const [availabilityVenue, setAvailabilityVenue] = useState<OwnerVenue | null>(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteVenue, setDeleteVenue] = useState<OwnerVenue | null>(null)
 
   useEffect(() => {
     let active = true
@@ -89,6 +94,38 @@ export default function OwnerVenuesContent() {
       active = false
     }
   }, [])
+
+  async function handleDeleteVenue() {
+    if (!accessToken || !deleteVenue) return
+
+    setDeleting(true)
+    setDeleteError(null)
+
+    try {
+      const response = await fetch("/api/owner/venues", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ id: deleteVenue.id }),
+      })
+
+      const data = (await response.json()) as { message?: string }
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete venue")
+      }
+
+      setVenues((currentVenues) => currentVenues.filter((venue) => venue.id !== deleteVenue.id))
+      setDeleteOpen(false)
+      setDeleteVenue(null)
+    } catch (deleteError: unknown) {
+      setDeleteError(deleteError instanceof Error ? deleteError.message : "Failed to delete venue")
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <>
@@ -166,6 +203,15 @@ export default function OwnerVenuesContent() {
                       })
                       setAvailabilityOpen(true)
                     }}
+                    onOwnerDelete={(venueId, venueName) => {
+                      setDeleteError(null)
+                      setDeleteVenue({
+                        ...venue,
+                        id: venueId,
+                        name: venueName,
+                      })
+                      setDeleteOpen(true)
+                    }}
                   />
                 </div>
               ))}
@@ -179,6 +225,23 @@ export default function OwnerVenuesContent() {
         onOpenChange={setAvailabilityOpen}
         venueId={availabilityVenue?.id ?? ""}
         venueName={availabilityVenue?.name ?? "Venue"}
+      />
+
+      <OwnerVenueDeleteDialog
+        open={deleteOpen}
+        venueName={deleteVenue?.name ?? "this venue"}
+        deleting={deleting}
+        error={deleteError}
+        onOpenChange={(open) => {
+          setDeleteOpen(open)
+          if (!open) {
+            setDeleteError(null)
+            setDeleteVenue(null)
+          }
+        }}
+        onConfirm={() => {
+          void handleDeleteVenue()
+        }}
       />
     </>
   )

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getAuthenticatedOwner } from "@/lib/services/owner/auth"
 import {
   createOwnerVenue,
+  deleteOwnerVenue,
   fetchOwnerVenues,
   updateOwnerVenue,
 } from "@/lib/services/owner/venues"
@@ -130,5 +131,34 @@ export async function PATCH(request: Request) {
   } catch (error: unknown) {
     console.error(error)
     return NextResponse.json({ message: "Failed to update venue" }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { userId, client } = await getAuthenticatedOwner(request)
+
+    if (!userId || !client) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const venueId = typeof body.id === "string" ? body.id.trim() : ""
+
+    if (!venueId) {
+      return NextResponse.json({ message: "Venue id is required" }, { status: 400 })
+    }
+
+    await deleteOwnerVenue(client, userId, venueId)
+
+    return NextResponse.json({ success: true })
+  } catch (error: unknown) {
+    console.error(error)
+    const message = error instanceof Error && error.message === "Venue not found"
+      ? "Venue not found"
+      : "Failed to delete venue"
+    const status = message === "Venue not found" ? 404 : 500
+
+    return NextResponse.json({ message }, { status })
   }
 }

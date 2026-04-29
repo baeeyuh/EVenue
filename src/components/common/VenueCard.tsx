@@ -28,6 +28,7 @@ export type VenueCardProps = {
   context?: "client" | "owner"
   onOwnerEdit?: (venueId: string) => void
   onOwnerViewAvailability?: (venueId: string, venueName: string) => void
+  onOwnerDelete?: (venueId: string, venueName: string) => void
 }
 
 export default function VenueCard(props: VenueCardProps) {
