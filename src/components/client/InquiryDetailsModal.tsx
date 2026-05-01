@@ -70,19 +70,6 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value))
 }
 
-function formatMessageTime(value: string) {
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) return ""
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date)
-}
-
 type ToggleSectionProps = {
   title: string
   defaultOpen?: boolean
@@ -292,6 +279,12 @@ export default function InquiryDetailsModal({
                         <CalendarDays className="h-4 w-4" />
                         {formatDate(inquiry.date)}
                       </span>
+                      {inquiry.start_time && inquiry.end_time && (
+                        <span className="inline-flex items-center gap-2">
+                          <Tag className="h-4 w-4" />
+                          {inquiry.start_time} to {inquiry.end_time}
+                        </span>
+                      )}
                       <span className="inline-flex items-center gap-2">
                         <Users className="h-4 w-4" />
                         {inquiry.pax ?? "Not provided"} pax
@@ -326,6 +319,37 @@ export default function InquiryDetailsModal({
                   </div>
                 )}
               </div>
+
+              {(inquiry.booking_type || inquiry.total_price) && (
+                <ToggleSection title="Booking Summary">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Booking type</p>
+                      <p className="mt-1 text-sm text-foreground">{inquiry.booking_type || "Not provided"}</p>
+                    </div>
+                    <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Duration</p>
+                      <p className="mt-1 text-sm text-foreground">
+                        {typeof inquiry.duration_hours === "number"
+                          ? `${inquiry.duration_hours} hours`
+                          : "Not provided"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Price breakdown</p>
+                      <p className="mt-1 text-sm text-foreground">{inquiry.price_breakdown || "Not provided"}</p>
+                    </div>
+                    <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Total</p>
+                      <p className="mt-1 text-sm text-foreground">
+                        {typeof inquiry.total_price === "number"
+                          ? `₱${inquiry.total_price.toLocaleString()}`
+                          : "Not provided"}
+                      </p>
+                    </div>
+                  </div>
+                </ToggleSection>
+              )}
 
               <ToggleSection title="Venue Details" defaultOpen>
                 <div className="relative h-44 overflow-hidden rounded-xl border border-border/60 sm:h-52">

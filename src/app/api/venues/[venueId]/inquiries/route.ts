@@ -42,6 +42,16 @@ export async function POST(
       startTime: body.startTime ? String(body.startTime) : undefined,
       endTime: body.endTime ? String(body.endTime) : undefined,
       contactNumber: body.contactNumber ? String(body.contactNumber) : undefined,
+      bookingType: body.bookingType ? String(body.bookingType) : undefined,
+      durationHours:
+        typeof body.durationHours === "number" && Number.isFinite(body.durationHours)
+          ? body.durationHours
+          : undefined,
+      priceBreakdown: body.priceBreakdown ? String(body.priceBreakdown) : undefined,
+      totalPrice:
+        typeof body.totalPrice === "number" && Number.isFinite(body.totalPrice)
+          ? body.totalPrice
+          : undefined,
     })
 
     return NextResponse.json({ id: created.id })

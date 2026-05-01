@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Building2, MapPin, Users, Layers2, CheckCircle2 } from "lucide-react"
+import { Building2, MapPin, Users, Layers2, CheckCircle2, Clock3 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,6 +32,12 @@ type OwnerVenue = {
   description: string | null
   is_available: boolean | null
   venue_type: string | null
+  check_in_time?: string | null
+  check_out_time?: string | null
+  allow_custom_hours?: boolean | null
+  allow_half_day?: boolean | null
+  hourly_rate?: number | null
+  half_day_price?: number | null
 }
 
 type OwnerVenueFormModalProps = {
@@ -74,6 +80,12 @@ export default function OwnerVenueFormModal({
   const [description, setDescription] = useState("")
   const [venueType, setVenueType] = useState("")
   const [isAvailable, setIsAvailable] = useState("true")
+  const [checkInTime, setCheckInTime] = useState("")
+  const [checkOutTime, setCheckOutTime] = useState("")
+  const [allowCustomHours, setAllowCustomHours] = useState(false)
+  const [allowHalfDay, setAllowHalfDay] = useState(false)
+  const [hourlyRate, setHourlyRate] = useState("")
+  const [halfDayPrice, setHalfDayPrice] = useState("")
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -87,9 +99,15 @@ export default function OwnerVenueFormModal({
       setCapacity(venue.capacity ? String(venue.capacity) : "")
   setPrice(venue.price ? String(venue.price) : "")
   setImage(venue.image ?? "")
-  setDescription(venue.description ?? "")
+      setDescription(venue.description ?? "")
       setVenueType(venue.venue_type ?? "")
       setIsAvailable(venue.is_available === false ? "false" : "true")
+      setCheckInTime(venue.check_in_time?.slice(0, 5) ?? "")
+      setCheckOutTime(venue.check_out_time?.slice(0, 5) ?? "")
+      setAllowCustomHours(Boolean(venue.allow_custom_hours))
+      setAllowHalfDay(Boolean(venue.allow_half_day))
+      setHourlyRate(venue.hourly_rate ? String(venue.hourly_rate) : "")
+      setHalfDayPrice(venue.half_day_price ? String(venue.half_day_price) : "")
       return
     }
 
@@ -101,6 +119,12 @@ export default function OwnerVenueFormModal({
     setDescription("")
     setVenueType("")
     setIsAvailable("true")
+    setCheckInTime("")
+    setCheckOutTime("")
+    setAllowCustomHours(false)
+    setAllowHalfDay(false)
+    setHourlyRate("")
+    setHalfDayPrice("")
   }, [mode, open, venue])
 
   const title = useMemo(() => (mode === "add" ? "Add venue" : "Edit venue"), [mode])
@@ -133,6 +157,12 @@ export default function OwnerVenueFormModal({
         description,
         venueType,
         isAvailable: mode === "add" ? true : isAvailable === "true",
+        checkInTime,
+        checkOutTime,
+        allowCustomHours,
+        allowHalfDay,
+        hourlyRate: hourlyRate ? Number(hourlyRate) : null,
+        halfDayPrice: halfDayPrice ? Number(halfDayPrice) : null,
       }
 
       const response = await fetch("/api/owner/venues", {
@@ -315,6 +345,86 @@ export default function OwnerVenueFormModal({
                 </Select>
               </div>
             )}
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Check-in time
+              </Label>
+              <div className="relative">
+                <Clock3 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="time"
+                  value={checkInTime}
+                  onChange={(e) => setCheckInTime(e.target.value)}
+                  className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Check-out time
+              </Label>
+              <div className="relative">
+                <Clock3 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="time"
+                  value={checkOutTime}
+                  onChange={(e) => setCheckOutTime(e.target.value)}
+                  className="h-11 rounded-xl border-border/60 bg-muted/40 pl-10"
+                />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-3 text-sm">
+              <input
+                type="checkbox"
+                checked={allowCustomHours}
+                onChange={(e) => setAllowCustomHours(e.target.checked)}
+                className="h-4 w-4 accent-primary"
+              />
+              <span>Allow custom hourly booking</span>
+            </label>
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Hourly rate (₱)
+              </Label>
+              <Input
+                type="number"
+                min={0}
+                value={hourlyRate}
+                onChange={(e) => setHourlyRate(e.target.value)}
+                disabled={!allowCustomHours}
+                placeholder="2500"
+                className="h-11 rounded-xl border-border/60 bg-muted/40"
+              />
+            </div>
+
+            <label className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-3 text-sm">
+              <input
+                type="checkbox"
+                checked={allowHalfDay}
+                onChange={(e) => setAllowHalfDay(e.target.checked)}
+                className="h-4 w-4 accent-primary"
+              />
+              <span>Allow half-day booking</span>
+            </label>
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Half-day price (₱)
+              </Label>
+              <Input
+                type="number"
+                min={0}
+                value={halfDayPrice}
+                onChange={(e) => setHalfDayPrice(e.target.value)}
+                disabled={!allowHalfDay}
+                placeholder="25000"
+                className="h-11 rounded-xl border-border/60 bg-muted/40"
+              />
+            </div>
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}

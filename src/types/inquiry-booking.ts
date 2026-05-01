@@ -39,4 +39,8 @@ export type InquiryCreateInput = {
   guestCount?: number
   startTime?: string
   endTime?: string
+  bookingType?: string
+  durationHours?: number
+  priceBreakdown?: string
+  totalPrice?: number
 }

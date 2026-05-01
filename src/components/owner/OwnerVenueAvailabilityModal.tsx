@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { supabaseClient } from "@/lib/supabaseClient"
 import {
   Dialog,
   DialogContent,
@@ -85,6 +86,7 @@ export default function OwnerVenueAvailabilityModal({
   const [availability, setAvailability] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [savingDate, setSavingDate] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -150,6 +152,50 @@ export default function OwnerVenueAvailabilityModal({
       unavailable: values.length - available,
     }
   }, [availability])
+
+  async function handleToggleDate(dateKey: string) {
+    const nextAvailability = availability[dateKey] === true ? false : true
+    setSavingDate(dateKey)
+    setError(null)
+
+    try {
+      const {
+        data: { session },
+      } = await supabaseClient.auth.getSession()
+      const accessToken = session?.access_token
+
+      if (!accessToken) {
+        throw new Error("Please log in to update availability")
+      }
+
+      const response = await fetch(`/api/venues/${encodeURIComponent(venueId)}/availability`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          date: dateKey,
+          isAvailable: nextAvailability,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Failed to update availability")
+      }
+
+      setAvailability((current) => ({
+        ...current,
+        [dateKey]: nextAvailability,
+      }))
+    } catch (toggleError: unknown) {
+      setError(getErrorMessage(toggleError, "Failed to update availability"))
+    } finally {
+      setSavingDate(null)
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -218,17 +264,21 @@ export default function OwnerVenueAvailabilityModal({
               const isUnavailable = availability[key] === false
 
               return (
-                <div
+                <button
                   key={key}
+                  type="button"
+                  disabled={savingDate === key}
+                  onClick={() => void handleToggleDate(key)}
                   className={cn(
                     "flex aspect-square items-center justify-center rounded-2xl border text-sm",
+                    savingDate === key && "opacity-60",
                     isAvailable && "border-emerald-200 bg-emerald-50 text-emerald-700",
                     isUnavailable && "border-border/60 bg-muted/40 text-muted-foreground",
                     !isAvailable && !isUnavailable && "border-border/40 bg-background"
                   )}
                 >
                   {day.getDate()}
-                </div>
+                </button>
               )
             })}
           </div>

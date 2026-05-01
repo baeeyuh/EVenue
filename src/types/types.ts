@@ -27,6 +27,12 @@ export type Venue = {
 	additionalInfo?: string
 	venueType?: string
 	isAvailable?: boolean
+	checkInTime?: string
+	checkOutTime?: string
+	allowCustomHours?: boolean
+	allowHalfDay?: boolean
+	hourlyRate?: number | null
+	halfDayPrice?: number | null
 }
 
 export type AuthFields = {

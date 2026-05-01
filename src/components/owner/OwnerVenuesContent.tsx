@@ -26,6 +26,12 @@ type OwnerVenue = {
   rating?: number | null
   review_count?: number | null
   description: string | null
+  check_in_time?: string | null
+  check_out_time?: string | null
+  allow_custom_hours?: boolean | null
+  allow_half_day?: boolean | null
+  hourly_rate?: number | null
+  half_day_price?: number | null
 }
 
 export default function OwnerVenuesContent() {
@@ -193,6 +199,12 @@ export default function OwnerVenuesContent() {
                     additionalInfo={venue.additional_info ?? undefined}
                     venueType={venue.venue_type ?? "Event Hall"}
                     isAvailable={venue.is_available ?? true}
+                    checkInTime={venue.check_in_time ?? undefined}
+                    checkOutTime={venue.check_out_time ?? undefined}
+                    allowCustomHours={venue.allow_custom_hours ?? false}
+                    allowHalfDay={venue.allow_half_day ?? false}
+                    hourlyRate={venue.hourly_rate ?? undefined}
+                    halfDayPrice={venue.half_day_price ?? undefined}
                     context="owner"
                     onOwnerEdit={(venueId) => {
                       router.push(`/dashboard/owner/venues/${venueId}/edit`)

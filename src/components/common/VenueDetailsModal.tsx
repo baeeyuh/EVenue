@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
-import { MapPin, Building2, Trash2 } from "lucide-react"
+import { MapPin, Building2, Trash2, Clock3 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,6 +23,21 @@ type Props = VenueCardProps & {
   onClose: () => void
 }
 
+function formatVenueTime(value?: string | null) {
+  if (!value) return "Not set"
+
+  const [hourPart, minutePart] = value.split(":")
+  const hour = Number(hourPart)
+  const minute = Number(minutePart)
+
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return value
+
+  return new Intl.DateTimeFormat("en-PH", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(2026, 0, 1, hour, minute))
+}
+
 export default function VenueDetailsModal({
   open,
   onClose,
@@ -40,6 +55,12 @@ export default function VenueDetailsModal({
   additionalInfo,
   venueType,
   isAvailable,
+  checkInTime,
+  checkOutTime,
+  allowCustomHours,
+  allowHalfDay,
+  hourlyRate,
+  halfDayPrice,
   context,
   onOwnerEdit,
   onOwnerViewAvailability,
@@ -100,6 +121,22 @@ export default function VenueDetailsModal({
                       valueClass: isAvailable ? "text-green-600" : "text-destructive",
                     },
                     { label: "Type", value: venueType ?? "Event Hall" },
+                    { label: "Check-in", value: formatVenueTime(checkInTime) },
+                    { label: "Check-out", value: formatVenueTime(checkOutTime) },
+                    ...(allowCustomHours && typeof hourlyRate === "number"
+                      ? [{ label: "Hourly", value: `₱${hourlyRate.toLocaleString()}/hr` }]
+                      : []),
+                    ...(allowHalfDay
+                      ? [
+                          {
+                            label: "Half-day",
+                            value:
+                              typeof halfDayPrice === "number"
+                                ? `₱${halfDayPrice.toLocaleString()}`
+                                : "Available",
+                          },
+                        ]
+                      : []),
                   ].map(({ label, value, valueClass }) => (
                     <div key={label} className="rounded-xl bg-muted/60 p-3">
                       <p className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -112,6 +149,17 @@ export default function VenueDetailsModal({
                   ))}
                 </div>
               </div>
+
+              {(checkInTime || checkOutTime) && (
+                <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-muted/35 p-3 text-sm text-muted-foreground">
+                  <Clock3 className="h-4 w-4 shrink-0 text-primary" />
+                  <span>
+                    Venue time: <span className="font-medium text-foreground">{formatVenueTime(checkInTime)}</span>{" "}
+                    check-in, <span className="font-medium text-foreground">{formatVenueTime(checkOutTime)}</span>{" "}
+                    check-out
+                  </span>
+                </div>
+              )}
 
               {!!amenities?.length && (
                 <div className="space-y-2">
@@ -217,6 +265,13 @@ export default function VenueDetailsModal({
             venueId={id}
             venueName={name}
             venueLocation={location}
+            checkInTime={checkInTime}
+            checkOutTime={checkOutTime}
+            fullDayPrice={typeof price === "string" ? price : undefined}
+            allowCustomHours={allowCustomHours}
+            allowHalfDay={allowHalfDay}
+            hourlyRate={hourlyRate}
+            halfDayPrice={halfDayPrice}
             onContinue={(startDate, endDate) => {
               setSelectedInquiryDate(startDate)
               setSelectedInquiryEndDate(endDate ?? "")
@@ -233,6 +288,13 @@ export default function VenueDetailsModal({
             venueLocation={location}
             ownerName={ownerName}
             venueCapacity={capacity}
+            checkInTime={checkInTime}
+            checkOutTime={checkOutTime}
+            fullDayPrice={price}
+            allowCustomHours={allowCustomHours}
+            allowHalfDay={allowHalfDay}
+            hourlyRate={hourlyRate}
+            halfDayPrice={halfDayPrice}
             initialEventDate={selectedInquiryDate}
             initialEventEndDate={selectedInquiryEndDate}
           />

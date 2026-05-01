@@ -12,6 +12,10 @@ export type ParsedInquiryMessage = {
   email: string
   fullName: string
   actualMessage: string
+  bookingType: string
+  durationHours: number | null
+  priceBreakdown: string
+  totalPrice: number | null
 }
 
 export type InquiryMessageRole = "client" | "owner"
@@ -143,6 +147,10 @@ export function composeInquiryMessage(payload: {
   contactNumber?: string
   email?: string
   fullName?: string
+  bookingType?: string
+  durationHours?: number
+  priceBreakdown?: string
+  totalPrice?: number
 }) {
   const lines = [
     `Venue: ${payload.venueLabel}`,
@@ -155,6 +163,10 @@ export function composeInquiryMessage(payload: {
     payload.contactNumber ? `Contact number: ${payload.contactNumber}` : null,
     payload.email ? `Email: ${payload.email}` : null,
     payload.fullName ? `Full name: ${payload.fullName}` : null,
+    payload.bookingType ? `Booking type: ${payload.bookingType}` : null,
+    typeof payload.durationHours === "number" ? `Duration hours: ${payload.durationHours}` : null,
+    payload.priceBreakdown ? `Price breakdown: ${payload.priceBreakdown}` : null,
+    typeof payload.totalPrice === "number" ? `Total price: ${payload.totalPrice}` : null,
     "",
     "Message:",
     payload.message,
@@ -176,6 +188,10 @@ export function parseInquiryMessage(message: string): ParsedInquiryMessage {
   const endDate = getValue("End date")
   const guestCountRaw = getValue("Guest count")
   const parsedGuestCount = Number(guestCountRaw)
+  const durationHoursRaw = getValue("Duration hours")
+  const totalPriceRaw = getValue("Total price")
+  const parsedDurationHours = Number(durationHoursRaw)
+  const parsedTotalPrice = Number(totalPriceRaw)
 
   const messageIndex = lines.findIndex((line) => line.trim() === "Message:")
   const actualMessage =
@@ -193,6 +209,10 @@ export function parseInquiryMessage(message: string): ParsedInquiryMessage {
     email: getValue("Email"),
     fullName: getValue("Full name"),
     actualMessage,
+    bookingType: getValue("Booking type"),
+    durationHours: Number.isFinite(parsedDurationHours) ? parsedDurationHours : null,
+    priceBreakdown: getValue("Price breakdown"),
+    totalPrice: Number.isFinite(parsedTotalPrice) ? parsedTotalPrice : null,
   }
 }
 

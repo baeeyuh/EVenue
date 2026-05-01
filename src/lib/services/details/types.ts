@@ -39,6 +39,12 @@ export type InquiryDetails = {
   client: DetailPerson
   owner: DetailPerson
   messages: DetailMessage[]
+  start_time?: string | null
+  end_time?: string | null
+  booking_type?: string | null
+  duration_hours?: number | null
+  price_breakdown?: string | null
+  total_price?: number | null
 }
 
 export type BookingDetails = {
