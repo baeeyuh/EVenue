@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import type { BookingStatus, InquiryStatus, InquiryCreateInput } from "@/types/inquiry-booking"
 import {
   appendInquiryThreadMessage,
+  composeInquiryMessage,
   isMissingColumnError,
   normalizeInquiryStatus,
   parseInquiryMessage,
@@ -44,6 +45,74 @@ type BookingRow = {
   id: string
   status: BookingStatus | string | null
   created_at: string | null
+}
+
+function normalizeTime(value: string | null | undefined) {
+  if (!value) return null
+  const match = /^(\d{2}):(\d{2})(:\d{2})?$/.exec(value)
+  if (!match) return null
+  return `${match[1]}:${match[2]}`
+}
+
+function addDays(dateKey: string, days: number) {
+  const [year, month, day] = dateKey.split("-").map(Number)
+  const date = new Date(year, month - 1, day + days)
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-")
+}
+
+function resolveScheduleWindow(input: {
+  eventDate: string
+  endDate?: string | null
+  startTime?: string | null
+  endTime?: string | null
+  fallbackStartTime?: string | null
+  fallbackEndTime?: string | null
+}) {
+  const startDate = input.eventDate.slice(0, 10)
+  const endDate = (input.endDate || input.eventDate).slice(0, 10)
+  const startTime = normalizeTime(input.startTime) ?? normalizeTime(input.fallbackStartTime) ?? "00:00"
+  const endTime = normalizeTime(input.endTime) ?? normalizeTime(input.fallbackEndTime) ?? "23:59"
+  const resolvedEndDate = startDate === endDate && endTime <= startTime ? addDays(endDate, 1) : endDate
+
+  return {
+    startDateTime: `${startDate}T${startTime}:00`,
+    endDateTime: `${resolvedEndDate}T${endTime}:00`,
+  }
+}
+
+async function assertVenueWindowAvailable(
+  client: SupabaseClient,
+  venueId: string,
+  window: { startDateTime: string; endDateTime: string },
+  ignoreInquiryId?: string,
+) {
+  const query = client
+    .from("bookings")
+    .select("id, inquiry_id")
+    .eq("venue_id", venueId)
+    .in("status", ["pending", "confirmed", "Pending", "Confirmed"])
+    .lt("start_date", window.endDateTime)
+    .gt("end_date", window.startDateTime)
+    .limit(5)
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error(error)
+    throw new Error("Failed to check time availability")
+  }
+
+  const conflicts = ((data ?? []) as Array<{ id: string; inquiry_id?: string | null }>).filter(
+    (booking) => !ignoreInquiryId || booking.inquiry_id !== ignoreInquiryId,
+  )
+
+  if (conflicts.length > 0) {
+    throw new Error("Selected time is not available")
+  }
 }
 
 async function buildVenueNameMap(
@@ -135,8 +204,43 @@ export async function createInquiry(
 ): Promise<{ id: string }> {
   const inquiryId = crypto.randomUUID()
   const ownerId = await getVenueOwnerId(client, payload.venueId)
+  const venueLookup = await client
+    .from("venues")
+    .select("check_in_time, check_out_time")
+    .eq("id", payload.venueId)
+    .maybeSingle()
+  const venueSchedule = (venueLookup.data as {
+    check_in_time?: string | null
+    check_out_time?: string | null
+  } | null) ?? null
+  const scheduleWindow = resolveScheduleWindow({
+    eventDate: payload.eventDate,
+    endDate: payload.endDate,
+    startTime: payload.startTime,
+    endTime: payload.endTime,
+    fallbackStartTime: venueSchedule?.check_in_time,
+    fallbackEndTime: venueSchedule?.check_out_time,
+  })
 
-  const rawMessage = payload.message.trim()
+  await assertVenueWindowAvailable(client, payload.venueId, scheduleWindow)
+
+  const rawMessage = composeInquiryMessage({
+    venueLabel: payload.venueId,
+    eventDate: payload.eventDate,
+    endDate: payload.endDate,
+    message: payload.message.trim(),
+    eventType: payload.eventType,
+    guestCount: payload.guestCount,
+    startTime: payload.startTime,
+    endTime: payload.endTime,
+    contactNumber: payload.contactNumber,
+    email: payload.email,
+    fullName: payload.fullName,
+    bookingType: payload.bookingType,
+    durationHours: payload.durationHours,
+    priceBreakdown: payload.priceBreakdown,
+    totalPrice: payload.totalPrice,
+  })
   const fallbackStructuredMessage = [
     `Event date: ${payload.eventDate}`,
     payload.endDate ? `End date: ${payload.endDate}` : null,
@@ -313,13 +417,31 @@ export async function confirmBooking(
     throw new Error("Inquiry event date is missing")
   }
 
+  if (!inquiryData.venue_id) {
+    throw new Error("Inquiry venue is missing")
+  }
+
   if (bookingEndDate && bookingEndDate < bookingDate) {
     throw new Error("Inquiry end date is before the start date")
   }
 
-  const startDate = `${bookingDate}T00:00:00`
-  const dayEnd = `${bookingDate}T23:59:59`
-  const endDate = bookingEndDate ? `${bookingEndDate}T23:59:59` : null
+  const venueLookup = await client
+    .from("venues")
+    .select("check_in_time, check_out_time")
+    .eq("id", inquiryData.venue_id)
+    .maybeSingle()
+  const venueSchedule = (venueLookup.data as {
+    check_in_time?: string | null
+    check_out_time?: string | null
+  } | null) ?? null
+  const scheduleWindow = resolveScheduleWindow({
+    eventDate: bookingDate,
+    endDate: bookingEndDate,
+    startTime: parsed.startTime,
+    endTime: parsed.endTime,
+    fallbackStartTime: venueSchedule?.check_in_time,
+    fallbackEndTime: venueSchedule?.check_out_time,
+  })
 
   const existingByInquiry = await client
     .from("bookings")
@@ -335,23 +457,7 @@ export async function confirmBooking(
     }
   }
 
-  const existingByDate = await client
-    .from("bookings")
-    .select("id, status, created_at")
-    .eq("user_id", userId)
-    .eq("venue_id", inquiryData.venue_id)
-    .gte("start_date", startDate)
-    .lte("start_date", dayEnd)
-    .in("status", ["pending", "confirmed", "Pending", "Confirmed"])
-    .limit(1)
-    .maybeSingle()
-
-  if (!existingByDate.error && existingByDate.data) {
-    return {
-      booking: existingByDate.data as BookingRow,
-      created: false,
-    }
-  }
+  await assertVenueWindowAvailable(client, inquiryData.venue_id, scheduleWindow, inquiryId)
 
   const bookingId = crypto.randomUUID()
   const code = `BK-${bookingId.slice(0, 8).toUpperCase()}`
@@ -366,9 +472,10 @@ export async function confirmBooking(
       client_id: inquiryData.client_id ?? inquiryData.user_id ?? userId,
       owner_id: inquiryData.owner_id ?? null,
       event_date: bookingDate,
-      start_date: startDate,
-      end_date: endDate,
+      start_date: scheduleWindow.startDateTime,
+      end_date: scheduleWindow.endDateTime,
       guest_count: inquiryData.pax ?? parsed.guestCount,
+      price: parsed.totalPrice,
       status: "confirmed",
       code,
     })
@@ -388,8 +495,8 @@ export async function confirmBooking(
       id: bookingId,
       venue_id: inquiryData.venue_id,
       user_id: userId,
-      start_date: startDate,
-      end_date: endDate,
+      start_date: scheduleWindow.startDateTime,
+      end_date: scheduleWindow.endDateTime,
       status: "confirmed",
       code,
     })
@@ -409,8 +516,8 @@ export async function confirmBooking(
       id: bookingId,
       venue_id: inquiryData.venue_id,
       user_id: userId,
-      start_date: startDate,
-      end_date: endDate,
+      start_date: scheduleWindow.startDateTime,
+      end_date: scheduleWindow.endDateTime,
       status: "confirmed",
     })
     .select("id, status, created_at")

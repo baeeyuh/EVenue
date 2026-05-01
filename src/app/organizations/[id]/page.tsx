@@ -92,6 +92,12 @@ export default async function OrganizationPublicPage({ params }: Props) {
                 additional_info: v.additional_info ?? undefined,
                 venue_type: v.venue_type ?? undefined,
                 is_available: v.is_available ?? true,
+                check_in_time: v.check_in_time ?? undefined,
+                check_out_time: v.check_out_time ?? undefined,
+                allow_custom_hours: v.allow_custom_hours ?? false,
+                allow_half_day: v.allow_half_day ?? false,
+                hourly_rate: v.hourly_rate ?? undefined,
+                half_day_price: v.half_day_price ?? undefined,
               }))}
             />
             <OrganizationGallery gallery={normalizedOrg.gallery} />

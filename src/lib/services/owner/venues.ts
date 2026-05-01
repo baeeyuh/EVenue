@@ -2,7 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { getOwnerOrgIds } from "@/lib/services/owner/organizations"
 
 const OWNER_VENUE_SELECT_VIEW =
-  "id, organization_id, organization_name, name, location, capacity, is_available, venue_type, image, price, rating, review_count, description, additional_info, amenities"
+  "id, organization_id, organization_name, name, location, capacity, is_available, venue_type, image, price, rating, review_count, description, additional_info, amenities, check_in_time, check_out_time, allow_custom_hours, allow_half_day, hourly_rate, half_day_price"
+const OWNER_VENUE_SELECT_LEGACY_WITH_TIMES =
+  "id, organization_id, name, location, capacity, is_available, venue_type, image, price, description, check_in_time, check_out_time, allow_custom_hours, allow_half_day, hourly_rate, half_day_price"
 const OWNER_VENUE_SELECT_LEGACY =
   "id, organization_id, name, location, capacity, is_available, venue_type, image, price, description"
 
@@ -13,6 +15,25 @@ function isMissingColumnError(error: unknown): boolean {
   const text = `${String(maybeError.message ?? "")} ${String(maybeError.details ?? "")} ${String(maybeError.hint ?? "")}`
 
   return /column|amenities|additional_info|schema cache|relation|view/i.test(text)
+}
+
+function getMissingOptionalVenueColumn(
+  error: unknown
+): "additional_info" | "check_in_time" | "check_out_time" | "allow_custom_hours" | "allow_half_day" | "hourly_rate" | "half_day_price" | null {
+  if (!error || typeof error !== "object") return null
+
+  const maybeError = error as { message?: unknown; details?: unknown; hint?: unknown }
+  const text = `${String(maybeError.message ?? "")} ${String(maybeError.details ?? "")} ${String(maybeError.hint ?? "")}`.toLowerCase()
+
+  if (!text.includes("schema cache") && !text.includes("column")) return null
+  if (text.includes("additional_info")) return "additional_info"
+  if (text.includes("check_in_time")) return "check_in_time"
+  if (text.includes("check_out_time")) return "check_out_time"
+  if (text.includes("allow_custom_hours")) return "allow_custom_hours"
+  if (text.includes("allow_half_day")) return "allow_half_day"
+  if (text.includes("hourly_rate")) return "hourly_rate"
+  if (text.includes("half_day_price")) return "half_day_price"
+  return null
 }
 
 export type OwnerVenueRow = {
@@ -31,6 +52,12 @@ export type OwnerVenueRow = {
   description: string | null
   amenities: string[] | null
   additional_info: string | null
+  check_in_time?: string | null
+  check_out_time?: string | null
+  allow_custom_hours?: boolean | null
+  allow_half_day?: boolean | null
+  hourly_rate?: number | null
+  half_day_price?: number | null
 }
 
 export type OwnerVenueUpsertPayload = {
@@ -44,11 +71,22 @@ export type OwnerVenueUpsertPayload = {
   additionalInfo?: string | null
   venueType?: string | null
   isAvailable?: boolean | null
+  checkInTime?: string | null
+  checkOutTime?: string | null
+  allowCustomHours?: boolean | null
+  allowHalfDay?: boolean | null
+  hourlyRate?: number | null
+  halfDayPrice?: number | null
 }
 
 type AmenityRow = {
   id: number
   name: string
+}
+
+type VenueQueryResult = {
+  data: unknown
+  error: unknown
 }
 
 function normalizeOptionalText(value: string | null | undefined): string | null {
@@ -80,15 +118,6 @@ function normalizeAmenitiesInput(amenities: string[] | null | undefined): string
   return Array.from(unique.values())
 }
 
-function isAdditionalInfoMissingError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false
-
-  const maybeError = error as { message?: unknown; details?: unknown; hint?: unknown }
-  const text = `${String(maybeError.message ?? "")} ${String(maybeError.details ?? "")} ${String(maybeError.hint ?? "")}`.toLowerCase()
-
-  return text.includes("additional_info") && text.includes("schema cache")
-}
-
 async function hydrateOwnerVenueById(
   client: SupabaseClient,
   orgIds: string[],
@@ -105,12 +134,21 @@ async function hydrateOwnerVenueById(
     return fromView.data as OwnerVenueRow
   }
 
-  const fallback = await client
+  let fallback = await client
     .from("venues")
-    .select(OWNER_VENUE_SELECT_LEGACY)
+    .select(OWNER_VENUE_SELECT_LEGACY_WITH_TIMES)
     .eq("id", venueId)
     .in("organization_id", orgIds)
     .single()
+
+  if (fallback.error && isMissingColumnError(fallback.error)) {
+    fallback = await client
+      .from("venues")
+      .select(OWNER_VENUE_SELECT_LEGACY)
+      .eq("id", venueId)
+      .in("organization_id", orgIds)
+      .single()
+  }
 
   if (fallback.error) {
     console.error(fallback.error)
@@ -123,6 +161,12 @@ async function hydrateOwnerVenueById(
     review_count: null,
     amenities: null,
     additional_info: null,
+    check_in_time: null,
+    check_out_time: null,
+    allow_custom_hours: false,
+    allow_half_day: false,
+    hourly_rate: null,
+    half_day_price: null,
   }
 }
 
@@ -242,11 +286,19 @@ export async function fetchOwnerVenues(
       throw new Error("Failed to fetch owner venues")
     }
 
-    const legacyResult = await client
+    let legacyResult: VenueQueryResult = await client
       .from("venues")
-      .select(OWNER_VENUE_SELECT_LEGACY)
+      .select(OWNER_VENUE_SELECT_LEGACY_WITH_TIMES)
       .in("organization_id", orgIds)
       .order("name", { ascending: true })
+
+    if (legacyResult.error && isMissingColumnError(legacyResult.error)) {
+      legacyResult = await client
+        .from("venues")
+        .select(OWNER_VENUE_SELECT_LEGACY)
+        .in("organization_id", orgIds)
+        .order("name", { ascending: true })
+    }
 
     if (legacyResult.error) {
       console.error(legacyResult.error)
@@ -259,6 +311,12 @@ export async function fetchOwnerVenues(
       review_count: null,
       amenities: null,
       additional_info: null,
+      check_in_time: venue.check_in_time ?? null,
+      check_out_time: venue.check_out_time ?? null,
+      allow_custom_hours: venue.allow_custom_hours ?? false,
+      allow_half_day: venue.allow_half_day ?? false,
+      hourly_rate: venue.hourly_rate ?? null,
+      half_day_price: venue.half_day_price ?? null,
     }))
   }
 
@@ -293,19 +351,34 @@ export async function createOwnerVenue(
     review_count: 0,
   }
 
+  const optionalInsert = {
+    additional_info: normalizeOptionalText(payload.additionalInfo),
+    check_in_time: normalizeOptionalText(payload.checkInTime),
+    check_out_time: normalizeOptionalText(payload.checkOutTime),
+    allow_custom_hours: payload.allowCustomHours ?? false,
+    allow_half_day: payload.allowHalfDay ?? false,
+    hourly_rate: typeof payload.hourlyRate === "number" ? payload.hourlyRate : null,
+    half_day_price: typeof payload.halfDayPrice === "number" ? payload.halfDayPrice : null,
+  }
+  const insertPayload: Record<string, string | number | boolean | null> = {
+    ...baseInsert,
+    ...optionalInsert,
+  }
+
   let { data, error } = await client
     .from("venues")
-    .insert({
-      ...baseInsert,
-      additional_info: normalizeOptionalText(payload.additionalInfo),
-    })
+    .insert(insertPayload)
     .select("id, organization_id")
     .single()
 
-  if (error && isAdditionalInfoMissingError(error)) {
+  while (error) {
+    const missingColumn = getMissingOptionalVenueColumn(error)
+    if (!missingColumn || !(missingColumn in insertPayload)) break
+
+    delete insertPayload[missingColumn]
     const fallbackInsert = await client
       .from("venues")
-      .insert(baseInsert)
+      .insert(insertPayload)
       .select("id, organization_id")
       .single()
 
@@ -337,7 +410,7 @@ export async function updateOwnerVenue(
     throw new Error("No organization found for this owner")
   }
 
-  const updates: Record<string, string | number | boolean | null> = {
+  let updates: Record<string, string | number | boolean | null> = {
     name: payload.name.trim(),
     location: normalizeOptionalText(payload.location),
     capacity: typeof payload.capacity === "number" ? payload.capacity : null,
@@ -347,6 +420,12 @@ export async function updateOwnerVenue(
     additional_info: normalizeOptionalText(payload.additionalInfo),
     venue_type: normalizeOptionalText(payload.venueType),
     is_available: payload.isAvailable ?? true,
+    check_in_time: normalizeOptionalText(payload.checkInTime),
+    check_out_time: normalizeOptionalText(payload.checkOutTime),
+    allow_custom_hours: payload.allowCustomHours ?? false,
+    allow_half_day: payload.allowHalfDay ?? false,
+    hourly_rate: typeof payload.hourlyRate === "number" ? payload.hourlyRate : null,
+    half_day_price: typeof payload.halfDayPrice === "number" ? payload.halfDayPrice : null,
   }
 
   let { data, error } = await client
@@ -357,13 +436,15 @@ export async function updateOwnerVenue(
     .select("id, organization_id")
     .single()
 
-  if (error && isAdditionalInfoMissingError(error)) {
-    const fallbackUpdates = { ...updates }
-    delete fallbackUpdates.additional_info
+  while (error) {
+    const missingColumn = getMissingOptionalVenueColumn(error)
+    if (!missingColumn || !(missingColumn in updates)) break
 
+    updates = { ...updates }
+    delete updates[missingColumn]
     const fallbackUpdate = await client
       .from("venues")
-      .update(fallbackUpdates)
+      .update(updates)
       .eq("id", venueId)
       .in("organization_id", orgIds)
       .select("id, organization_id")

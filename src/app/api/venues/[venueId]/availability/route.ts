@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { supabaseServer } from "@/lib/supabaseServer"
+import { getAuthenticatedOwner } from "@/lib/services/owner/auth"
+import { getOwnerOrgIds } from "@/lib/services/owner/organizations"
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback
@@ -66,6 +68,21 @@ export async function GET(
 
     const venueIsAvailable = venueData.is_available !== false
 
+    const overridesResult = await supabaseServer
+      .from("venue_date_availability")
+      .select("date, is_available")
+      .eq("venue_id", venueId)
+      .gte("date", startDate)
+      .lte("date", endDateString)
+
+    const availabilityOverrides = new Map<string, boolean>()
+
+    if (!overridesResult.error) {
+      for (const override of (overridesResult.data ?? []) as Array<{ date: string; is_available: boolean }>) {
+        availabilityOverrides.set(normalizeDateKey(override.date) ?? override.date, override.is_available)
+      }
+    }
+
     const { data: bookingsData, error } = await supabaseServer
       .from("bookings")
       .select("start_date, end_date, status")
@@ -105,7 +122,7 @@ export async function GET(
 
       availability.push({
         date: dateKey,
-        isAvailable: venueIsAvailable && !isBlocked,
+        isAvailable: availabilityOverrides.get(dateKey) ?? (venueIsAvailable && !isBlocked),
       })
     }
 
@@ -116,6 +133,67 @@ export async function GET(
     console.error("availability route error:", error)
     return NextResponse.json(
       { message: getErrorMessage(error, "Failed to load availability") },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ venueId: string }> }
+) {
+  try {
+    const { userId, client } = await getAuthenticatedOwner(request)
+
+    if (!userId || !client) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    const { venueId } = await context.params
+    const body = await request.json()
+    const date = normalizeDateKey(typeof body?.date === "string" ? body.date : null)
+    const isAvailable = typeof body?.isAvailable === "boolean" ? body.isAvailable : null
+
+    if (!date || isAvailable === null) {
+      return NextResponse.json({ message: "Date and availability are required" }, { status: 400 })
+    }
+
+    const orgIds = await getOwnerOrgIds(client, userId)
+    const venueLookup = await client
+      .from("venues")
+      .select("id, organization_id")
+      .eq("id", venueId)
+      .maybeSingle()
+
+    const venue = venueLookup.data as { organization_id?: string | null } | null
+
+    if (venueLookup.error || !venue?.organization_id || !orgIds.includes(venue.organization_id)) {
+      return NextResponse.json({ message: "Venue not found" }, { status: 404 })
+    }
+
+    const upsert = await client
+      .from("venue_date_availability")
+      .upsert({
+        venue_id: venueId,
+        date,
+        is_available: isAvailable,
+        updated_at: new Date().toISOString(),
+      })
+      .select("date, is_available")
+      .single()
+
+    if (upsert.error) {
+      throw new Error(upsert.error.message)
+    }
+
+    return NextResponse.json({
+      date,
+      isAvailable,
+    })
+  } catch (error: unknown) {
+    console.error("availability update route error:", error)
+    return NextResponse.json(
+      { message: getErrorMessage(error, "Failed to update availability") },
       { status: 500 }
     )
   }

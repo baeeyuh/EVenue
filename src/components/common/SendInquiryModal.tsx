@@ -32,12 +32,41 @@ type SendInquiryModalProps = {
   venueLocation?: string
   ownerName?: string
   venueCapacity?: number
+  checkInTime?: string
+  checkOutTime?: string
+  fullDayPrice?: string
+  allowCustomHours?: boolean
+  allowHalfDay?: boolean
+  hourlyRate?: number | null
+  halfDayPrice?: number | null
   initialEventDate?: string
   initialEventEndDate?: string
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback
+}
+
+function parsePeso(value?: string) {
+  if (!value) return null
+  const numberValue = Number(value.replace(/[^\d.]/g, ""))
+  return Number.isFinite(numberValue) ? numberValue : null
+}
+
+function formatMoney(value: number | null) {
+  return typeof value === "number" ? `₱${value.toLocaleString()}` : "Price on request"
+}
+
+function hoursBetween(start: string, end: string) {
+  if (!start || !end) return null
+  const [startHour, startMinute] = start.split(":").map(Number)
+  const [endHour, endMinute] = end.split(":").map(Number)
+  if (![startHour, startMinute, endHour, endMinute].every(Number.isFinite)) return null
+
+  const startMinutes = startHour * 60 + startMinute
+  let endMinutes = endHour * 60 + endMinute
+  if (endMinutes <= startMinutes) endMinutes += 24 * 60
+  return (endMinutes - startMinutes) / 60
 }
 
 export default function SendInquiryModal({
@@ -47,6 +76,13 @@ export default function SendInquiryModal({
   venueName,
   ownerName,
   venueCapacity,
+  checkInTime,
+  checkOutTime,
+  fullDayPrice,
+  allowCustomHours,
+  allowHalfDay,
+  hourlyRate,
+  halfDayPrice,
   initialEventDate,
   initialEventEndDate,
 }: SendInquiryModalProps) {
@@ -57,6 +93,7 @@ export default function SendInquiryModal({
   const [endDate, setEndDate] = useState(initialEventEndDate ?? "")
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
+  const [bookingType, setBookingType] = useState<"full_day" | "hourly" | "half_day_morning" | "half_day_evening">("full_day")
   const [guestCount, setGuestCount] = useState("")
   const [eventType, setEventType] = useState("")
   const [message, setMessage] = useState("")
@@ -74,6 +111,63 @@ export default function SendInquiryModal({
     venueCapacity > 0 &&
     guestCountNumber !== null &&
     guestCountNumber > venueCapacity
+  const fullDayPriceNumber = parsePeso(fullDayPrice)
+  const durationHours = hoursBetween(startTime, endTime)
+  const calculatedPrice = useMemo(() => {
+    if (bookingType === "hourly") {
+      if (typeof hourlyRate !== "number" || typeof durationHours !== "number") return null
+      const hourlyTotal = hourlyRate * durationHours
+      return typeof fullDayPriceNumber === "number"
+        ? Math.min(hourlyTotal, fullDayPriceNumber)
+        : hourlyTotal
+    }
+
+    if (bookingType === "half_day_morning" || bookingType === "half_day_evening") {
+      if (typeof halfDayPrice === "number") return halfDayPrice
+      return typeof fullDayPriceNumber === "number" ? fullDayPriceNumber / 2 : null
+    }
+
+    if (!eventDate) return null
+    const start = new Date(`${eventDate}T00:00:00`)
+    const end = new Date(`${endDate || eventDate}T00:00:00`)
+    const days = Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())
+      ? 1
+      : Math.max(1, Math.floor((end.getTime() - start.getTime()) / 86400000) + 1)
+    return typeof fullDayPriceNumber === "number" ? fullDayPriceNumber * days : null
+  }, [bookingType, durationHours, hourlyRate, halfDayPrice, fullDayPriceNumber, eventDate, endDate])
+  const priceBreakdown =
+    bookingType === "hourly"
+      ? `${durationHours ?? 0} hours x ${formatMoney(hourlyRate ?? null)}${typeof fullDayPriceNumber === "number" ? "; capped at full-day price" : ""}`
+      : bookingType === "half_day_morning"
+        ? "Morning half-day slot"
+        : bookingType === "half_day_evening"
+          ? "Evening half-day slot"
+          : "Full-day rate"
+  const invalidTimeSelection =
+    (bookingType === "hourly" && (!startTime || !endTime || !durationHours || durationHours <= 0)) ||
+    ((bookingType === "full_day" ||
+      bookingType === "half_day_morning" ||
+      bookingType === "half_day_evening") &&
+      (!startTime || !endTime))
+
+  useEffect(() => {
+    if (bookingType === "full_day") {
+      setStartTime(checkInTime?.slice(0, 5) ?? "")
+      setEndTime(checkOutTime?.slice(0, 5) ?? "")
+      return
+    }
+
+    if (bookingType === "half_day_morning") {
+      setStartTime(checkInTime?.slice(0, 5) ?? "08:00")
+      setEndTime("12:00")
+      return
+    }
+
+    if (bookingType === "half_day_evening") {
+      setStartTime("13:00")
+      setEndTime(checkOutTime?.slice(0, 5) ?? "17:00")
+    }
+  }, [bookingType, checkInTime, checkOutTime])
 
   useEffect(() => {
     if (open) {
@@ -86,7 +180,7 @@ export default function SendInquiryModal({
     let ignore = false
 
     async function checkDateAvailability() {
-      if (!eventDate) {
+      if (!eventDate || invalidTimeSelection) {
         setIsDateAvailable(null)
         return
       }
@@ -109,7 +203,7 @@ export default function SendInquiryModal({
 
         const rangeEnd = endDate || eventDate
         const res = await fetch(
-          `/api/venues/${encodedVenueId}/availability/check?startDate=${encodeURIComponent(eventDate)}&endDate=${encodeURIComponent(rangeEnd)}`,
+          `/api/venues/${encodedVenueId}/availability/check?startDate=${encodeURIComponent(eventDate)}&endDate=${encodeURIComponent(rangeEnd)}&startTime=${encodeURIComponent(startTime)}&endTime=${encodeURIComponent(endTime)}`,
           {
             method: "GET",
             cache: "no-store",
@@ -147,7 +241,7 @@ export default function SendInquiryModal({
     return () => {
       ignore = true
     }
-  }, [eventDate, endDate, venueId])
+  }, [eventDate, endDate, venueId, startTime, endTime, invalidTimeSelection])
 
   const dateStatusText = useMemo(() => {
     if (!eventDate) return null
@@ -174,6 +268,7 @@ export default function SendInquiryModal({
     !eventDate.trim() ||
     !eventType.trim() ||
     !message.trim() ||
+    invalidTimeSelection ||
     dateChecking ||
     isDateAvailable === false ||
     isInvalidRange ||
@@ -223,6 +318,10 @@ export default function SendInquiryModal({
           endDate: endDate || undefined,
           startTime: startTime || undefined,
           endTime: endTime || undefined,
+          bookingType,
+          durationHours: durationHours ?? undefined,
+          priceBreakdown,
+          totalPrice: calculatedPrice ?? undefined,
           guestCount: guestCount ? Number(guestCount) : undefined,
           eventType: eventType || undefined,
           message,
@@ -279,6 +378,31 @@ export default function SendInquiryModal({
         </div>
 
         <div className="flex-1 space-y-3.5 overflow-y-auto p-4 sm:space-y-5 sm:p-6 no-scrollbar">
+          <div className="space-y-2">
+            <Label className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
+              Booking type
+            </Label>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[
+                { value: "full_day", label: "Full day", enabled: true },
+                { value: "hourly", label: "Hourly", enabled: Boolean(allowCustomHours && hourlyRate) },
+                { value: "half_day_morning", label: "Morning", enabled: Boolean(allowHalfDay) },
+                { value: "half_day_evening", label: "Evening", enabled: Boolean(allowHalfDay) },
+              ].map((option) => (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant={bookingType === option.value ? "default" : "outline"}
+                  disabled={!option.enabled}
+                  className="h-10 rounded-full text-xs"
+                  onClick={() => setBookingType(option.value as typeof bookingType)}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
             <div className="min-w-0 space-y-1.5">
               <Label className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
@@ -406,6 +530,7 @@ export default function SendInquiryModal({
                   type="time"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
+                  disabled={bookingType !== "hourly"}
                   className="h-10 rounded-xl border-border/60 bg-muted/40 pl-8 pr-2 text-[13px] sm:h-11 sm:pl-10 sm:pr-3 sm:text-sm"
                 />
               </div>
@@ -421,9 +546,33 @@ export default function SendInquiryModal({
                   type="time"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
+                  disabled={bookingType !== "hourly"}
                   className="h-10 rounded-xl border-border/60 bg-muted/40 pl-8 pr-2 text-[13px] sm:h-11 sm:pl-10 sm:pr-3 sm:text-sm"
                 />
               </div>
+            </div>
+          </div>
+
+          <div className="grid gap-2 rounded-2xl border border-border/60 bg-muted/25 p-3 text-sm sm:grid-cols-2">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Time range</p>
+              <p className="mt-1 font-medium text-foreground">
+                {startTime || "--:--"} to {endTime || "--:--"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Duration</p>
+              <p className="mt-1 font-medium text-foreground">
+                {typeof durationHours === "number" ? `${durationHours} hours` : "Not calculated"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Price breakdown</p>
+              <p className="mt-1 font-medium text-foreground">{priceBreakdown}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Total cost</p>
+              <p className="mt-1 font-medium text-foreground">{formatMoney(calculatedPrice)}</p>
             </div>
           </div>
 

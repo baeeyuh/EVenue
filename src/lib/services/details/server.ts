@@ -339,6 +339,7 @@ async function tryGetRelationalInquiryDetails(client: SupabaseClient, inquiryId:
       messages: messages.sort(
         (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       ),
+      ...inquiryScheduleFields(row.message),
     } as InquiryDetails,
   }
 }
@@ -356,6 +357,19 @@ function buildName(profile: {
 
   const composed = [profile.first_name, profile.last_name].filter(Boolean).join(" ").trim()
   return composed || "Unknown"
+}
+
+function inquiryScheduleFields(message: string) {
+  const parsed = parseInquiryMessage(message)
+
+  return {
+    start_time: parsed.startTime || null,
+    end_time: parsed.endTime || null,
+    booking_type: parsed.bookingType || null,
+    duration_hours: parsed.durationHours,
+    price_breakdown: parsed.priceBreakdown || null,
+    total_price: parsed.totalPrice,
+  }
 }
 
 async function fetchProfile(client: SupabaseClient, id: string | null): Promise<DetailPerson> {
@@ -471,17 +485,6 @@ async function fetchVenue(client: SupabaseClient, venueId: string | null): Promi
     rating: typeof venue?.rating === "number" ? venue.rating : null,
     review_count: typeof venue?.review_count === "number" ? venue.review_count : null,
   }
-}
-
-function fallbackMessagesFromInquiry(inquiry: InquiryBaseRow): DetailMessage[] {
-  return getInquiryThread(inquiry.message, inquiry.created_at)
-    .map((message) => ({
-      id: message.id,
-      message: message.message,
-      sender_role: message.role,
-      created_at: message.createdAt,
-    }))
-    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 }
 
 async function fetchInquiryMessagesByInquiryId(
@@ -714,6 +717,7 @@ async function buildInquiryDetails(
     client: clientProfile,
     owner: ownerProfile,
     messages,
+    ...inquiryScheduleFields(inquiry.message),
   }
 }
 
@@ -734,6 +738,7 @@ export async function getClientInquiryDetails(
     const viewMessages = parseViewMessages(row.messages)
     const threadMessages = await fetchInquiryMessagesByInquiryId(client, row.id, undefined, row.created_at)
     const messages = threadMessages.length > 0 ? threadMessages : viewMessages
+    const rawInquiry = await fetchInquiryBase(client, row.id)
 
     const venue: DetailVenue = row.venue
       ? {
@@ -768,6 +773,7 @@ export async function getClientInquiryDetails(
       client: row.client ? { id: row.client.id, name: row.client.name, email: row.client.email } : { id: null, name: "Unknown", email: null },
       owner: row.owner ? { id: null, name: row.owner.name, email: row.owner.email } : { id: null, name: "Unknown", email: null },
       messages: messages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+      ...inquiryScheduleFields(rawInquiry?.message ?? ""),
     }
   }
 
@@ -822,6 +828,7 @@ export async function getOwnerInquiryDetails(
     const viewMessages = parseViewMessages(row.messages)
     const threadMessages = await fetchInquiryMessagesByInquiryId(client, row.id, undefined, row.created_at)
     const messages = threadMessages.length > 0 ? threadMessages : viewMessages
+    const rawInquiry = await fetchInquiryBase(client, row.id)
 
     const venue: DetailVenue = row.venue
       ? {
@@ -860,6 +867,7 @@ export async function getOwnerInquiryDetails(
         email: row.owner?.email ?? null,
       },
       messages: messages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+      ...inquiryScheduleFields(rawInquiry?.message ?? ""),
     }
   }
 

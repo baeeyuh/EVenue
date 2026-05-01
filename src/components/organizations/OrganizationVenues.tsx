@@ -24,6 +24,18 @@ type VenueLike = {
   venueType?: string
   is_available?: boolean
   isAvailable?: boolean
+  check_in_time?: string | null
+  checkInTime?: string
+  check_out_time?: string | null
+  checkOutTime?: string
+  allow_custom_hours?: boolean | null
+  allowCustomHours?: boolean
+  allow_half_day?: boolean | null
+  allowHalfDay?: boolean
+  hourly_rate?: number | null
+  hourlyRate?: number | null
+  half_day_price?: number | null
+  halfDayPrice?: number | null
 }
 
 export default function OrganizationVenues({ venues }: { venues: VenueLike[] }) {
@@ -52,6 +64,12 @@ export default function OrganizationVenues({ venues }: { venues: VenueLike[] }) 
             additionalInfo={v.additional_info ?? v.additionalInfo}
             venueType={v.venue_type ?? v.venueType}
             isAvailable={v.is_available ?? v.isAvailable ?? true}
+            checkInTime={v.check_in_time ?? v.checkInTime}
+            checkOutTime={v.check_out_time ?? v.checkOutTime}
+            allowCustomHours={v.allow_custom_hours ?? v.allowCustomHours ?? false}
+            allowHalfDay={v.allow_half_day ?? v.allowHalfDay ?? false}
+            hourlyRate={v.hourly_rate ?? v.hourlyRate}
+            halfDayPrice={v.half_day_price ?? v.halfDayPrice}
           />
         ))}
       </div>

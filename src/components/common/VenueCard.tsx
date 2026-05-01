@@ -25,6 +25,12 @@ export type VenueCardProps = {
   additionalInfo?: string
   venueType?: string
   isAvailable?: boolean
+  checkInTime?: string
+  checkOutTime?: string
+  allowCustomHours?: boolean
+  allowHalfDay?: boolean
+  hourlyRate?: number | null
+  halfDayPrice?: number | null
   context?: "client" | "owner"
   onOwnerEdit?: (venueId: string) => void
   onOwnerViewAvailability?: (venueId: string, venueName: string) => void

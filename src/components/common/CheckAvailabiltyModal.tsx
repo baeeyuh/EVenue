@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Clock3 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -24,6 +24,13 @@ type CheckAvailabilityModalProps = {
   venueId: string
   venueName: string
   venueLocation?: string
+  checkInTime?: string
+  checkOutTime?: string
+  fullDayPrice?: string
+  allowCustomHours?: boolean
+  allowHalfDay?: boolean
+  hourlyRate?: number | null
+  halfDayPrice?: number | null
   onContinue?: (startDate: string, endDate?: string) => void
 }
 
@@ -92,11 +99,33 @@ function buildCalendarDays(viewDate: Date) {
   return days
 }
 
+function formatVenueTime(value?: string | null) {
+  if (!value) return "Not set"
+
+  const [hourPart, minutePart] = value.split(":")
+  const hour = Number(hourPart)
+  const minute = Number(minutePart)
+
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return value
+
+  return new Intl.DateTimeFormat("en-PH", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(2026, 0, 1, hour, minute))
+}
+
 export default function CheckAvailabilityModal({
   open,
   onOpenChange,
   venueId,
   venueName,
+  checkInTime,
+  checkOutTime,
+  fullDayPrice,
+  allowCustomHours,
+  allowHalfDay,
+  hourlyRate,
+  halfDayPrice,
   onContinue,
 }: CheckAvailabilityModalProps) {
   const [viewDate, setViewDate] = useState(() => startOfMonth(new Date()))
@@ -189,6 +218,40 @@ export default function CheckAvailabilityModal({
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:space-y-5 sm:p-6 no-scrollbar">
+          {(checkInTime || checkOutTime) && (
+            <div className="flex items-center gap-2 rounded-[1.25rem] border border-border/60 bg-muted/35 p-3.5 text-xs text-muted-foreground sm:text-sm">
+              <Clock3 className="h-4 w-4 shrink-0 text-primary" />
+              <span>
+                Check-in <span className="font-medium text-foreground">{formatVenueTime(checkInTime)}</span>
+                {" "}and check-out{" "}
+                <span className="font-medium text-foreground">{formatVenueTime(checkOutTime)}</span>
+              </span>
+            </div>
+          )}
+
+          <div className="grid gap-2 rounded-[1.25rem] border border-border/60 bg-background p-3 text-xs text-muted-foreground sm:grid-cols-3 sm:text-sm">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.12em]">Full day</p>
+              <p className="mt-1 font-medium text-foreground">{fullDayPrice ?? "Price on request"}</p>
+            </div>
+            {allowCustomHours && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.12em]">Hourly</p>
+                <p className="mt-1 font-medium text-foreground">
+                  {typeof hourlyRate === "number" ? `₱${hourlyRate.toLocaleString()}/hr` : "Ask owner"}
+                </p>
+              </div>
+            )}
+            {allowHalfDay && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.12em]">Half-day</p>
+                <p className="mt-1 font-medium text-foreground">
+                  {typeof halfDayPrice === "number" ? `₱${halfDayPrice.toLocaleString()}` : "Available"}
+                </p>
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center justify-between gap-2">
             <Button
               type="button"

@@ -21,10 +21,30 @@ function parsePrice(value: unknown): number | null {
   return numberValue
 }
 
+function parseOptionalMoney(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue) || numberValue < 0) return null
+  return numberValue
+}
+
 function parseOptionalText(value: unknown): string | null {
   if (typeof value !== "string") return null
   const trimmed = value.trim()
   return trimmed ? trimmed : null
+}
+
+function parseTime(value: unknown): string | null {
+  if (typeof value !== "string") return null
+  const trimmed = value.trim()
+  const match = /^(\d{2}):(\d{2})(:\d{2})?$/.exec(trimmed)
+  if (!match) return null
+
+  const hours = Number(match[1])
+  const minutes = Number(match[2])
+  if (hours > 23 || minutes > 59) return null
+
+  return trimmed
 }
 
 function parseAmenities(value: unknown): string[] {
@@ -42,6 +62,12 @@ function parseIsAvailable(value: unknown): boolean {
     return value.toLowerCase() !== "false"
   }
   return true
+}
+
+function parseBoolean(value: unknown): boolean {
+  if (typeof value === "boolean") return value
+  if (typeof value === "string") return value.toLowerCase() === "true"
+  return false
 }
 
 export async function GET(request: Request) {
@@ -85,6 +111,12 @@ export async function POST(request: Request) {
       additionalInfo: parseOptionalText(body.additionalInfo),
       venueType: parseOptionalText(body.venueType),
       isAvailable: parseIsAvailable(body.isAvailable),
+      checkInTime: parseTime(body.checkInTime),
+      checkOutTime: parseTime(body.checkOutTime),
+      allowCustomHours: parseBoolean(body.allowCustomHours),
+      allowHalfDay: parseBoolean(body.allowHalfDay),
+      hourlyRate: parseOptionalMoney(body.hourlyRate),
+      halfDayPrice: parseOptionalMoney(body.halfDayPrice),
     })
 
     return NextResponse.json(venue)
@@ -125,6 +157,12 @@ export async function PATCH(request: Request) {
       additionalInfo: parseOptionalText(body.additionalInfo),
       venueType: parseOptionalText(body.venueType),
       isAvailable: parseIsAvailable(body.isAvailable),
+      checkInTime: parseTime(body.checkInTime),
+      checkOutTime: parseTime(body.checkOutTime),
+      allowCustomHours: parseBoolean(body.allowCustomHours),
+      allowHalfDay: parseBoolean(body.allowHalfDay),
+      hourlyRate: parseOptionalMoney(body.hourlyRate),
+      halfDayPrice: parseOptionalMoney(body.halfDayPrice),
     })
 
     return NextResponse.json(venue)
