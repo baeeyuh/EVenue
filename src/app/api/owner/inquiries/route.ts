@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getAuthenticatedOwner } from "@/lib/services/owner/auth"
+import { getOwnerInquiryDetails } from "@/lib/services/details/server"
 import {
   fetchOwnerInquiries,
   sendOwnerInquiryMessage,
@@ -13,6 +14,19 @@ export async function GET(request: Request) {
 
     if (!userId || !client) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const inquiryId = searchParams.get("id")?.trim()
+
+    if (inquiryId) {
+      const inquiry = await getOwnerInquiryDetails(client, userId, inquiryId)
+
+      if (!inquiry) {
+        return NextResponse.json({ message: "Inquiry not found" }, { status: 404 })
+      }
+
+      return NextResponse.json(inquiry)
     }
 
     const inquiries = await fetchOwnerInquiries(client, userId)

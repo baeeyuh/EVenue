@@ -40,8 +40,8 @@ export async function getInquiryDetails(
 ): Promise<InquiryDetails> {
   const endpoint =
     role === "owner"
-      ? `/api/owner/inquiries/${encodeURIComponent(inquiryId)}`
-      : `/api/client/inquiries/${encodeURIComponent(inquiryId)}`
+      ? `/api/owner/inquiries?id=${encodeURIComponent(inquiryId)}`
+      : `/api/client/inquiries?id=${encodeURIComponent(inquiryId)}`
 
   return fetchDetails<InquiryDetails>(endpoint)
 }
@@ -52,8 +52,8 @@ export async function getBookingDetails(
 ): Promise<BookingDetails> {
   const endpoint =
     role === "owner"
-      ? `/api/owner/bookings/${encodeURIComponent(bookingId)}`
-      : `/api/client/bookings/${encodeURIComponent(bookingId)}`
+      ? `/api/owner/bookings?id=${encodeURIComponent(bookingId)}`
+      : `/api/client/bookings?id=${encodeURIComponent(bookingId)}`
 
   return fetchDetails<BookingDetails>(endpoint)
 }

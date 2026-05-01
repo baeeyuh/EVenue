@@ -33,6 +33,7 @@ type SendInquiryModalProps = {
   ownerName?: string
   venueCapacity?: number
   initialEventDate?: string
+  initialEventEndDate?: string
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -47,11 +48,13 @@ export default function SendInquiryModal({
   ownerName,
   venueCapacity,
   initialEventDate,
+  initialEventEndDate,
 }: SendInquiryModalProps) {
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [contactNumber, setContactNumber] = useState("")
   const [eventDate, setEventDate] = useState(initialEventDate ?? "")
+  const [endDate, setEndDate] = useState(initialEventEndDate ?? "")
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
   const [guestCount, setGuestCount] = useState("")
@@ -75,8 +78,9 @@ export default function SendInquiryModal({
   useEffect(() => {
     if (open) {
       setEventDate(initialEventDate ?? "")
+      setEndDate(initialEventEndDate ?? "")
     }
-  }, [initialEventDate, open])
+  }, [initialEventDate, initialEventEndDate, open])
 
   useEffect(() => {
     let ignore = false
@@ -84,6 +88,12 @@ export default function SendInquiryModal({
     async function checkDateAvailability() {
       if (!eventDate) {
         setIsDateAvailable(null)
+        return
+      }
+
+      if (endDate && endDate < eventDate) {
+        setIsDateAvailable(null)
+        setError("End date must be on or after the start date")
         return
       }
 
@@ -97,8 +107,9 @@ export default function SendInquiryModal({
         const accessToken = session?.access_token
         const encodedVenueId = encodeURIComponent(venueId)
 
+        const rangeEnd = endDate || eventDate
         const res = await fetch(
-          `/api/venues/${encodedVenueId}/availability/check?date=${encodeURIComponent(eventDate)}`,
+          `/api/venues/${encodedVenueId}/availability/check?startDate=${encodeURIComponent(eventDate)}&endDate=${encodeURIComponent(rangeEnd)}`,
           {
             method: "GET",
             cache: "no-store",
@@ -136,15 +147,25 @@ export default function SendInquiryModal({
     return () => {
       ignore = true
     }
-  }, [eventDate, venueId])
+  }, [eventDate, endDate, venueId])
 
   const dateStatusText = useMemo(() => {
     if (!eventDate) return null
     if (dateChecking) return "Checking availability..."
-    if (isDateAvailable === true) return "This date is available."
-    if (isDateAvailable === false) return "This date is not available for this venue."
+    if (isDateAvailable === true) {
+      return endDate && endDate !== eventDate
+        ? "This date range is available."
+        : "This date is available."
+    }
+    if (isDateAvailable === false) {
+      return endDate && endDate !== eventDate
+        ? "This date range is not available for this venue."
+        : "This date is not available for this venue."
+    }
     return null
-  }, [eventDate, dateChecking, isDateAvailable])
+  }, [eventDate, endDate, dateChecking, isDateAvailable])
+
+  const isInvalidRange = Boolean(endDate && endDate < eventDate)
 
   const isDisabled =
     loading ||
@@ -155,6 +176,7 @@ export default function SendInquiryModal({
     !message.trim() ||
     dateChecking ||
     isDateAvailable === false ||
+    isInvalidRange ||
     exceedsCapacity
 
   async function handleSubmit() {
@@ -165,6 +187,10 @@ export default function SendInquiryModal({
     try {
       if (isDateAvailable === false) {
         throw new Error("Selected date is not available for this venue")
+      }
+
+      if (isInvalidRange) {
+        throw new Error("End date must be on or after the start date")
       }
 
       if (exceedsCapacity) {
@@ -194,6 +220,7 @@ export default function SendInquiryModal({
           venueName,
           contactNumber: contactNumber || undefined,
           eventDate,
+          endDate: endDate || undefined,
           startTime: startTime || undefined,
           endTime: endTime || undefined,
           guestCount: guestCount ? Number(guestCount) : undefined,
@@ -216,6 +243,7 @@ export default function SendInquiryModal({
       setEmail("")
       setContactNumber("")
       setEventDate("")
+      setEndDate("")
       setStartTime("")
       setEndTime("")
       setGuestCount("")
@@ -303,7 +331,7 @@ export default function SendInquiryModal({
 
             <div className="min-w-0 space-y-1.5">
               <Label className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
-                Event date
+                Start date
               </Label>
               <div className="relative">
                 <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground sm:left-3 sm:h-4 sm:w-4" />
@@ -311,6 +339,21 @@ export default function SendInquiryModal({
                   type="date"
                   value={eventDate}
                   onChange={(e) => setEventDate(e.target.value)}
+                  className="h-10 rounded-xl border-border/60 bg-muted/40 pl-8 pr-2 text-[13px] sm:h-11 sm:pl-10 sm:pr-3 sm:text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
+                End date
+              </Label>
+              <div className="relative">
+                <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground sm:left-3 sm:h-4 sm:w-4" />
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
                   className="h-10 rounded-xl border-border/60 bg-muted/40 pl-8 pr-2 text-[13px] sm:h-11 sm:pl-10 sm:pr-3 sm:text-sm"
                 />
               </div>

@@ -22,6 +22,7 @@ export type NavItem = {
   label: string
   icon: LucideIcon
   isActive: boolean
+  badgeCount?: number
 }
 
 type BaseNavBarProps = {
@@ -101,6 +102,20 @@ export default function BaseNavBar({
   const firstName = user?.user_metadata?.first_name ?? user?.email?.split("@")[0] ?? "User"
   const lastName = user?.user_metadata?.last_name ?? ""
   const initials = `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase()
+  const renderBadge = (count: number | undefined, compact = false) => {
+    if (!count || count < 1) return null
+
+    return (
+      <span
+        className={cn(
+          "flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-4 text-white",
+          compact && "absolute -right-2 -top-1"
+        )}
+      >
+        {count > 99 ? "99+" : count}
+      </span>
+    )
+  }
 
   return (
     <>
@@ -174,7 +189,7 @@ export default function BaseNavBar({
 
             {/* Middle nav */}
             <nav className="hidden lg:flex w-full items-center justify-center gap-x-8">
-              {navItems.map(({ href, label, icon: Icon, isActive }) => (
+              {navItems.map(({ href, label, icon: Icon, isActive, badgeCount }) => (
                 <Link
                   key={href}
                   href={href}
@@ -187,7 +202,10 @@ export default function BaseNavBar({
                       : "text-muted-foreground hover:bg-muted/50 hover:text-foreground sm:hover:bg-transparent"
                   )}
                 >
-                  <Icon className="h-4.5 w-4.5 sm:h-4 sm:w-4 lg:h-4.5 lg:w-4.5" />
+                  <span className="relative">
+                    <Icon className="h-4.5 w-4.5 sm:h-4 sm:w-4 lg:h-4.5 lg:w-4.5" />
+                    {renderBadge(badgeCount, true)}
+                  </span>
                   <span className="hidden font-serif leading-none sm:inline">{label}</span>
                 </Link>
               ))}
@@ -251,7 +269,7 @@ export default function BaseNavBar({
         className="fixed bottom-0 inset-x-0 z-50 border-t border-border/60 bg-background/95 backdrop-blur-xl lg:hidden"
       >
         <div className="grid grid-flow-col auto-cols-fr items-center pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
-          {navItems.map(({ href, label, icon: Icon, isActive }) => (
+          {navItems.map(({ href, label, icon: Icon, isActive, badgeCount }) => (
             <Link
               key={href}
               href={href}
@@ -264,7 +282,10 @@ export default function BaseNavBar({
                   : "text-muted-foreground"
               )}
             >
-              <Icon className="h-5 w-5" />
+              <span className="relative">
+                <Icon className="h-5 w-5" />
+                {renderBadge(badgeCount, true)}
+              </span>
               <span className="text-[10px]">{label}</span>
             </Link>
           ))}

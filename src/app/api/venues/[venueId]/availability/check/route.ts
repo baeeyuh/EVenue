@@ -24,15 +24,28 @@ export async function GET(
     const { venueId } = await context.params
     const { searchParams } = new URL(request.url)
     const date = searchParams.get("date")
+    const startDate = searchParams.get("startDate")
+    const endDate = searchParams.get("endDate")
 
-    if (!date) {
+    const requestedStart = startDate ?? date
+    const requestedEnd = endDate ?? requestedStart
+
+    if (!requestedStart) {
       return NextResponse.json({ message: "Date is required" }, { status: 400 })
     }
 
-    const normalizedDate = normalizeDateKey(date)
-    if (!normalizedDate) {
+    const normalizedStart = normalizeDateKey(requestedStart)
+    const normalizedEnd = normalizeDateKey(requestedEnd)
+    if (!normalizedStart || !normalizedEnd) {
       return NextResponse.json(
         { message: "Invalid date format" },
+        { status: 400 }
+      )
+    }
+
+    if (normalizedEnd < normalizedStart) {
+      return NextResponse.json(
+        { message: "End date must be on or after start date" },
         { status: 400 }
       )
     }
@@ -60,8 +73,8 @@ export async function GET(
       .select("id")
       .eq("venue_id", venueId)
       .in("status", ["pending", "confirmed", "Pending", "Confirmed"])
-      .lte("start_date", `${normalizedDate}T23:59:59`)
-      .or(`end_date.gte.${normalizedDate},end_date.is.null`)
+      .lte("start_date", `${normalizedEnd}T23:59:59`)
+      .or(`end_date.gte.${normalizedStart},end_date.is.null`)
       .limit(1)
 
     if (error) {

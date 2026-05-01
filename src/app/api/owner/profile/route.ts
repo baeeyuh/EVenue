@@ -31,6 +31,11 @@ export async function PATCH(request: Request) {
     const lastName = typeof body.lastName === "string" ? body.lastName : ""
     const contactNumber =
       typeof body.contactNumber === "string" ? body.contactNumber : ""
+    const businessName = typeof body.businessName === "string" ? body.businessName : ""
+    const businessAddress =
+      typeof body.businessAddress === "string" ? body.businessAddress : ""
+    const city = typeof body.city === "string" ? body.city : ""
+    const province = typeof body.province === "string" ? body.province : ""
 
     if (!firstName.trim() && !lastName.trim()) {
       return NextResponse.json(
@@ -43,6 +48,10 @@ export async function PATCH(request: Request) {
       firstName,
       lastName,
       contactNumber,
+      businessName,
+      businessAddress,
+      city,
+      province,
     })
 
     return NextResponse.json(profile)

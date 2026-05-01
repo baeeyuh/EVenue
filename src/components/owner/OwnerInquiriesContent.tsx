@@ -138,23 +138,42 @@ export default function OwnerInquiriesContent() {
         throw new Error(data?.message || "Failed to update inquiry")
       }
 
+      const savedStatus = data.status ?? status
+
       setInquiries((prev) =>
         prev.map((inquiry) =>
           inquiry.id === inquiryId
             ? {
                 ...inquiry,
-                status,
+                status: savedStatus,
               }
             : inquiry
         )
       )
+      setDetailsCache((prev) => {
+        const cachedInquiry = prev[inquiryId]
+        if (!cachedInquiry) return prev
 
-      toast.success(status === "accepted" ? "Inquiry accepted" : "Inquiry declined")
-    } catch (actionError: unknown) {
-      const message = actionError instanceof Error ? actionError.message : "Failed to update inquiry"
-      toast.error("Action failed", {
-        description: message,
+        return {
+          ...prev,
+          [inquiryId]: {
+            ...cachedInquiry,
+            status: savedStatus,
+          },
+        }
       })
+      setSelectedInquiry((prev) =>
+        prev && prev.id === inquiryId
+          ? {
+              ...prev,
+              status: savedStatus,
+            }
+          : prev
+      )
+
+      return { status: savedStatus }
+    } catch (actionError: unknown) {
+      throw actionError
     } finally {
       setActionLoadingById((prev) => ({ ...prev, [inquiryId]: false }))
     }
@@ -204,6 +223,7 @@ export default function OwnerInquiriesContent() {
           : item
       )
     )
+    setDetailsCache((prev) => ({ ...prev, [nextInquiry.id]: nextInquiry }))
     setSelectedInquiry(nextInquiry)
   }
 
